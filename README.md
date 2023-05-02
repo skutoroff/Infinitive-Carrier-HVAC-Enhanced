@@ -1,9 +1,12 @@
 # Infinitive-Enhanced
 Based on the project:
+
 Reference:	https://github.com/acd/infinitive
+
 See also:	https://github.com/mww012/hass-infinitive
 
 Start with the infinitive project before further reading here.
+
 
 The original disclaimer still applies. Maybe more so. (copied from the Infinitive README.md)
 
