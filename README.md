@@ -24,13 +24,13 @@ The original disclaimer still applies. Maybe more so. (copied from the Infinitiv
 As with the project source developer, all my development is on with Raspberry Pi with Infinitive running on a Pi 4 and my development on a Pi 400. The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. A Pi Zero would probably do fine.
 
 I use a RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus. It worked as soon as the wires to the HVAC were connected in January 2023. I also have an as yet unused RS-485 to USB adapter, I’m sure it would work just as easily. It was my backup plan.
-TTL RS-485 is:	dlymore TTL Serial Port to RS485 Converter Module, was less than $4.00 with shipping from China. 3x more from Amazon under different name
-USB IF:	U-485 USB RS485 Serial Port Converter was also cheap wherever I found it.
+TTL RS-485 is:	dlymore TTL Serial Port to RS485 Converter Module, was less than $7.45 with shipping from eBay.
+USB IF:	U-485 USB RS485 Serial Port Converter was $8.91 with shipping, also found on eBay.
 
 Wiring uses solid core multi-conductor wire as intended for the purpose. Read the referenced GitHub project. The wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling and down to my network equipment (see “Problems Encountered).
 
 #### Software
-Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). For time based execution, found github.com/robfig/cron/v3 which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 second intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using github.com/go-echarts/go-echarts/v2/charts. First pass at charting is pretty simple. Lots is left to learn about the e-chart project. A third daily timer runs to purge daily data and chart files older files than 14 days (for now).
+Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 second intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting is pretty simple. Lots is left to learn about the e-chart project. A third daily timer runs to purge daily data and chart files older files than 14 days (for now).
 
 As for the time axis in the charts, could not figure out how to set up text format time in the scale. So, the daily data include a date.dayFraction representation of time for the time scale. I wanted to see a chart more than I wanted to learn e-charts at the time.
 
