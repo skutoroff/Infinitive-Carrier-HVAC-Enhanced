@@ -35,6 +35,8 @@ Using go version 1.20.2 linux/arm. Had to fix some import statements in the sour
 As for the time axis in the charts, could not figure out how to set up text format time in the scale. So, the daily data include a date.dayFraction representation of time for the time scale. I wanted to see a chart more than I wanted to learn e-charts at the time.
 
 Having read through the original GitHub project information and some information from web searches, I put Infinitive under Systemd and added redirection of output and error files to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
+The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperarure. Temperature readings and blower RPM readings are sometimes corrupted in transmission, the code cleans up the obvious exteme errors. I'll add a right side scale as I get into E-charts. Changing the time scale to be text date/time is also intended.
+The big problems now is understanding how to build the assets and make UI changes.
 
 #### Problems Encountered.
 After trying to save collected data in arrays (later slices as I learned Go) I discovered that Infinitive crashes, a lot. Systemd did a great job of masking those events. The cause is in the serial driver AFAIK. Had to rewrite code to save data in files and work around the crashes which can occur in intervals from very short to as long as 8 hours observed  between them. It is not clear if household electrical activity is a contributor, the longer durations between crashes do seem to be at night.
