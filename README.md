@@ -41,6 +41,9 @@ The big problems now is understanding how to build the assets and make UI change
 #### Problems Encountered.
 After trying to save collected data in arrays (later slices as I learned Go) I discovered that Infinitive crashes, a lot. Systemd did a great job of masking those events. The cause is in the serial driver AFAIK. Had to rewrite code to save data in files and work around the crashes which can occur in intervals from very short to as long as 8 hours observed  between them. It is not clear if household electrical activity is a contributor, the longer durations between crashes do seem to be at night.
 
+### Help Needed
+I'm stuck. Unable to build (bindata etc.) the planned web HMI changes. All of the searches I've done refer to "go get" installation which is no longer supported in the go version I'm using (see Software above). Am I using too new a verions of go or dependent too old a bindata build process? I can continue to fuss with my charts, I want to move into the web server HMI part, seems like that is the whole go thing.
+
 #### Plans
 Besides improving the charts appearance and adding more time line options, I want to modify the web server to display uptime for my own curiosity and add a table of links to the prepared charts. Currently looking to the web server side of the original source code now that the collection is stable. Working on editing and building the assets side.
 
