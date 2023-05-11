@@ -30,13 +30,13 @@ USB IF:	U-485 USB RS485 Serial Port Converter was $8.91 with shipping, also foun
 Wiring uses solid core multi-conductor wire as intended for the purpose. Read the referenced GitHub project. The wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling and down to my network equipment (see “Problems Encountered).
 
 #### Software
-Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 second intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting is pretty simple. Lots is left to learn about the e-chart project. A third daily timer runs to purge daily data and chart files older files than 14 days (for now).
+Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 second intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting is pretty simple. Lots is left to learn about the e-chart project. In progress: Timers to purge daily data and chart files older files than 14 days (for now) and clear the log files 2x per month.
 
 As for the time axis in the charts, could not figure out how to set up text format time in the scale. So, the daily data include a date.dayFraction representation of time for the time scale. I wanted to see a chart more than I wanted to learn e-charts at the time.
 
 Having read through the original GitHub project information and some information from web searches, I put Infinitive under Systemd and added redirection of output and error files to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
-The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperarure. Temperature readings and blower RPM readings are sometimes corrupted in transmission, the code cleans up the obvious exteme errors. I'll add a right side scale as I get into E-charts. Changing the time scale to be text date/time is also intended.
-The big problems now is understanding how to build the assets and make UI changes.
+The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperarure. Temperature readings and blower RPM readings are sometimes corrupted in transmission, the code cleans up the obvious exteme errors. I'll add blower RPM as a right side scale as I get into E-charts. Changing the time scale to be text date/time is also intended.
+The big problems now is understanding how to build the assets and make UI changes. Not much progress here.
 
 #### Problems Encountered.
 After trying to save collected data in arrays (later slices as I learned Go) I discovered that Infinitive crashes, a lot. Systemd did a great job of masking those events. The cause is in the serial driver AFAIK. Had to rewrite code to save data in files and work around the crashes which can occur in intervals from very short to as long as 8 hours observed  between them. It is not clear if household electrical activity is a contributor, the longer durations between crashes do seem to be at night.
@@ -47,7 +47,12 @@ Besides improving the charts appearance and adding more time line options, I wan
 #### Other Nonsense
 With no formal Go experience, I like Go better than other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first.
 
+The busy little Pi 4 at work
 ![Image](https://user-images.githubusercontent.com/7796742/235656897-720388c3-07a2-48a0-982a-6f020c1dfb48.JPG)
 
+Added Min & Max
+![image](https://github.com/skutoroff/Infinitive-Enhanced/assets/7796742/d2ebc624-ed73-44ec-8003-dac037d208ea)
 
+Earlier Chart
 ![Image](https://user-images.githubusercontent.com/7796742/235656510-4a0443b4-1b43-4674-a632-8b629df78702.png)
+
