@@ -1,8 +1,11 @@
 package main
 
 	// Ref: https://github.com/acd/infinitive
-	//	https://github.com/elazarl/go-bindata-assetfs
-	//	https://linux-packages.com/ubuntu-focal-fossa/package/golang-github-elazarl-go-bindata-assetfs-dev
+	// Ref: https://github.com/elazarl/go-bindata-assetfs
+	// Installed to build assets
+	//		go get github.com/go-bindata/go-bindata/...
+	//		go get github.com/elazarl/go-bindata-assetfs/...
+	// Help Ref: https://github.com/inconshreveable/ngrok/issues/181
 
 import (
 	"bytes"
@@ -51,6 +54,14 @@ type HeatPump struct {
 
 var infinity *InfinityProtocol
 
+// String candidates for redefinition on build using -ldflags
+var	Version			= "development"
+var	filePath		= "/var/lib/infinitive/"
+var	fileName		= "Infinitive.csv"
+var	logPath			= "/var/log/infinitive/"
+var TemperatureSuffix = "_Temperature.html"
+
+
 // aded: Global defs to support periodic write to file
 var fileHvacHistory *os.File
 var blowerRPM       uint16
@@ -63,7 +74,6 @@ var outTemp			int
 var	inTemp			int
 var	fanRPM			int
 var	index			int
-var	filePath		= "/var/lib/infinitive/"
 var	htmlChartTable	string
 
 
@@ -200,7 +210,7 @@ func attachSnoops() {
 
 // Function to find HTML files and prepare table of links, bool argument controls table only or full html page
 func makeTableHTMLfiles( tableOnly bool ) {
-	// Identify the html files, produce 2 column html table of links as test file, later, remove head & tail stuff
+	// Identify the html files, produce 2 column html table of links
 	htmlLinks, err := os.OpenFile(filePath+"htmlLinks.html", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 			log.Error("makeTableHTMLfiles:htmlFile Create Failure.")
@@ -227,7 +237,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 				if index % 2 == 0 {
 					htmlLinks.WriteString( "  <tr>\n" )
 				}
-				htmlLinks.WriteString( "    <td><a href=\"" + filePath + fileName + "\">" + fileName + "</a></td>\n" )
+				htmlLinks.WriteString( "    <td><a href=\"" + filePath + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + fileName + "</a></td>\n" )
 					if index % 2 != 0 {
 						htmlLinks.WriteString( " </tr>\n" )
 				}
@@ -247,10 +257,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 }
 
 func main() {
-	var	fileName		= "Infinitive.csv"
 	var HeaderString	= "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp,blowerRPM\n"
-	var TemperatureSuffix = "_Temperature.html"
-	var	logPath			= "/var/log/infinitive/"
 	var dailyFileName, s2	string
 	var f64					float64
 
@@ -285,7 +292,7 @@ func main() {
 	motRPM	:= make( [] int,	 2000 )
 	dt := time.Now()
 	//	Save the data in a file, observed crashing requires charting from file
-	fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 	if err != nil {
 			log.Error("Infinitive Data File Open Failure.")
 	}
@@ -297,7 +304,7 @@ func main() {
 	// cron Job 1 - every 4 minutes - collect to Infinitive.csv
 	// cron Job 2 - after last data of the day - close, rename, open new Infinitive.csv, & produce html from last file
 	// cron Job 3 - purge daily files after 14 days
-	// cron job 4 - delete log files 2x per month
+	// cron job 4 - delete log files 2x per month, 1st & 15th
 	// Set up cron 1 for 4 minute data collection
 	cronJob1 := cron.New(cron.WithSeconds())
 	cronJob1.AddFunc("0 */4 * * * *", func () {
@@ -326,7 +333,7 @@ func main() {
 			os.Exit(0)
 		}
 		// Reopen/Open new Infinitive.csv
-		fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		if err != nil {
 			log.Error("infinitive.go cron Job 2, error on reopen of:"+filePath+fileName)
 			os.Exit(0)
@@ -384,17 +391,19 @@ func main() {
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
 			charts.WithTitleOpts(opts.Title{
-				Title:    "Infinitive HVAC Daily Chart",
+				Title:    "Infinitive " + Version + " HVAC Daily Chart",
 				Subtitle: "Indoor and Outdoor Temperatues from " + dailyFileName,
 			} ) )
 		// Chart the Indoor and Outdoor temps (to start). How to use date/time string as time?
 		Line.SetXAxis( dayf[0:index-1])
 		Line.AddSeries("Indoor Temp", 	items1[0:index-1])
 		Line.AddSeries("Outdoor Temp",	items2[0:index-1])
+		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"}))
+		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
 		Line.AddSeries("Fan RPM%",		items3[0:index-1])
 		Line.SetSeriesOptions(charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 		fileStr := fmt.Sprintf("%s%04d-%02d-%02d%s", filePath, dt.Year(), dt.Month(), dt.Day(), TemperatureSuffix)
-		f, err := os.Create(fileStr)
+		f, err := os.OpenFile( fileStr, os.O_CREATE, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
 			Line.Render(io.MultiWriter(f))
@@ -409,16 +418,16 @@ func main() {
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 5 0 * * *", func () {
 		// purge old csv files
-		shellString := "find " + filePath + "*.csv -mtime +14 -exec sudo rm {} \\;"
-		log.Error("infinitive.go cron 3 issue purge old files shell command: " + shellString)
+		shellString := "sudo find " + filePath + "*.csv -type f -mtime +14 -delete;"
+		log.Error("infinitive.go cron 3, issue old file purge shell command: " + shellString)
 		shellCmd := exec.Command(shellString)
 		err := shellCmd.Run()
 		if err != nil {
 			log.Error("Infinitve.go cron 3, csv purge script Failed." + shellString)
 		}
 		// purge old html files
-		shellString = "find " + filePath + "*.html -mtime +14 -exec sudo rm {} \\;"
-		log.Error("infinitive issueing old file purge shell command: " + shellString)
+		shellString = "sudo find " + filePath + "*.html -type f -mtime +14 -delete;"
+		log.Error("infinitive.go cron 3, issue old file purge shell command: " + shellString)
 		shellCmd = exec.Command(shellString)
 		err = shellCmd.Run()
 		if err != nil {
