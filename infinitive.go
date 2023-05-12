@@ -403,14 +403,14 @@ func main() {
 		Line.AddSeries("Fan RPM%",		items3[0:index-1])
 		Line.SetSeriesOptions(charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 		fileStr := fmt.Sprintf("%s%04d-%02d-%02d%s", filePath, dt.Year(), dt.Month(), dt.Day(), TemperatureSuffix)
-		f, err := os.OpenFile( fileStr, os.O_CREATE, 0664 )
+		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_RDWR, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
-			Line.Render(io.MultiWriter(f))
+			Line.Render(io.MultiWriter(fHTML))
 		} else {
 			log.Error("Infinitive.go cron 2, error creating html rendered file.")
 		}
-		f.Close()
+		fHTML.Close()
 	} )
 	cronJob2.Start()
 
