@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
 	"strconv"
 	"bufio"
@@ -231,7 +230,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 		for _, file := range files {
 			fileName := file.Name()
 			length := len(fileName)
-			// Only process temprature html files...
+			// Only process temperature html files...
 			if fileName[length-1] == 'l' && fileName[0]!='h' {
 				// make two column table...
 				if index % 2 == 0 {
@@ -292,7 +291,7 @@ func main() {
 	motRPM	:= make( [] int,	 2000 )
 	dt := time.Now()
 	//	Save the data in a file, observed crashing requires charting from file
-	fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+	fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664 )
 	if err != nil {
 			log.Error("Infinitive Data File Open Failure.")
 	}
@@ -304,12 +303,13 @@ func main() {
 	// cron Job 1 - every 4 minutes - collect to Infinitive.csv
 	// cron Job 2 - after last data of the day - close, rename, open new Infinitive.csv, & produce html from last file
 	// cron Job 3 - purge daily files after 14 days
-	// cron job 4 - delete log files 2x per month, 1st & 15th
+	// cron job 4 - delete log files 3x per month
 	// Set up cron 1 for 4 minute data collection
 	cronJob1 := cron.New(cron.WithSeconds())
 	cronJob1.AddFunc("0 */4 * * * *", func () {
 		dt := time.Now()
-		frcDay :=  float32(dt.Day()) + 4.16667*(float32(dt.Hour()) + float32(dt.Minute())/60.0)/100.0
+		// Consider including years fro 2023 in calculaton, 2023-05-01 is Julian 2460065
+		frcDay :=  float32(dt.YearDay()) + 4.16667*(float32(dt.Hour()) + float32(dt.Minute())/60.0)/100.0
 		s1 := fmt.Sprintf( "%s,%09.4f,%04d,%04d,%04d,%04d,%04d,%s\n", dt.Format("2006-01-02T15:04:05"),
 							frcDay,heatSet, coolSet, outdoorTemp, currentTemp, blowerRPM, hvacMode )
 		fileHvacHistory.WriteString(s1)
@@ -333,7 +333,7 @@ func main() {
 			os.Exit(0)
 		}
 		// Reopen/Open new Infinitive.csv
-		fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+		fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664 )
 		if err != nil {
 			log.Error("infinitive.go cron Job 2, error on reopen of:"+filePath+fileName)
 			os.Exit(0)
@@ -361,15 +361,19 @@ func main() {
 				dayf[index]	= float32(f64)
 				// Extract and save the indoor and outdoor temps in the slices (not yet used)
 				outTmp[index], err	= strconv.Atoi( s2[40:44] )
-				if outTmp[index]==0 || outTmp[index]>130 {	// outTmp could be zero, but could be error
-					outTmp[index] = outTmp[index-1]			// worry about index==0 later
+				// fix for the too frequent 0 spikes in raw data
+				if outTmp[index]==0 || outTmp[index]>130 {		// outTmp could be 0, but likely an error
+					outTmp[index] = outTmp[index-1]				// worry about index==0 later
+				}
+				if outTmp[index]==1 && outTmp[index-1]>25 { 	// we get down spikes to 1 as well as 0
+					outTmp[index] = outTmp[index-1]				// again, worry about inedx==0 later
 				}
 				inTmp[index], err	= strconv.Atoi( s2[45:49] )
 				if inTmp[index]==0 || inTmp[index]>110 {
-					inTmp[index] = inTmp[index-1]			// worry about index==0 later
+					inTmp[index] = inTmp[index-1]				// worry about index==0 later
 				}
 				motRPM[index], err = strconv.Atoi( s2[50:54] )
-				// Set low-med-Hi ranges to later improve chart, for now %range matches temp# range
+				// Set low-med-Hi ranges to improve chart, for now %rpm range matches temp degree range
 				if motRPM[index] < 200 {
 					motRPM[index] = 0
 				} else if motRPM[index] < 550 {
@@ -403,7 +407,7 @@ func main() {
 		Line.AddSeries("Fan RPM%",		items3[0:index-1])
 		Line.SetSeriesOptions(charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
 		fileStr := fmt.Sprintf("%s%04d-%02d-%02d%s", filePath, dt.Year(), dt.Month(), dt.Day(), TemperatureSuffix)
-		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_RDWR, 0664 )
+		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
 			Line.Render(io.MultiWriter(fHTML))
@@ -411,42 +415,64 @@ func main() {
 			log.Error("Infinitive.go cron 2, error creating html rendered file.")
 		}
 		fHTML.Close()
+		err = os.Chmod( fileStr, 0664 )		// as set in OpeFile, still got 0644
 	} )
 	cronJob2.Start()
 
-	// Set up cron 3 to purge old daily data files, identify all html files
+	// Set up cron 3 to purge old daily csv & html files
+	// Tried variations of below and file permissions, etc. Using shell exec does not work.
+	//	level=error msg on "find /var/lib/infinitive/*.csv -type f -mtime +14 -delete;"
+	//	level=error msg on "sudo find /var/lib/infinitive/*.csv -type f -mtime +14 -delete;"
+	//	level=error msg on "find /var/lib/infinitive/*.csv -type f -mtime +14 -exec rm -f {} ';'"
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 5 0 * * *", func () {
-		// purge old csv files
-		shellString := "sudo find " + filePath + "*.csv -type f -mtime +14 -delete;"
-		log.Error("infinitive.go cron 3, issue old file purge shell command: " + shellString)
-		shellCmd := exec.Command(shellString)
-		err := shellCmd.Run()
+		// Limitations as code elaborated: assumes file order is old 2 new.
+		count := 0
+		nowDayYear := time.Now().YearDay()
+		files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
 		if err != nil {
-			log.Error("Infinitve.go cron 3, csv purge script Failed." + shellString)
-		}
-		// purge old html files
-		shellString = "sudo find " + filePath + "*.html -type f -mtime +14 -delete;"
-		log.Error("infinitive.go cron 3, issue old file purge shell command: " + shellString)
-		shellCmd = exec.Command(shellString)
-		err = shellCmd.Run()
-		if err != nil {
-			log.Error("Infinitve.go cron 3, html file purge script Failed." + shellString)
+			log.Error( "Error cron job 3: - dirctory read error: " + filePath )
+			log.Error(err)
+		} else {
+			for _, file := range files {
+				fileName := file.Name()
+				length := len(fileName)
+				// Process csv files...
+				if fileName[0]=='2' && (fileName[length-1] == 'v' || fileName[length-1] == 'l') {
+					fullName := filePath + fileName
+					fFile, err := os.Stat( fullName )
+					if err == nil {
+						dayofYear := fFile.ModTime().YearDay()
+						if nowDayYear - dayofYear > 14 {
+							count++
+							if os.Remove( fullName ) != nil {
+								log.Error( "Infinitve.go cron 3, csv, html file remove error: " + fullName )
+							}
+						}
+						if count > 3 { break }	// for now, limit number of deletes (expect  per day)
+					} else {
+						log.Error( "Infinitve.go cron 3, can't os.Stat file: " + fullName )
+					}	// os.Stat issue
+				} // fileName is match
+			}  // for...
 		}
 		makeTableHTMLfiles( false )
 	} )
 	cronJob3.Start()
 
-	// Set up cron 4 to delete log files 2x per month
+	// Set up cron 4 to delete log files 3x per month
 	cronJob4 := cron.New(cron.WithSeconds())
-	cronJob4.AddFunc( "4 0 1 1,15 * *", func () {
-		// remove log files least they grow unbounded
-		shellString := "sudo rm " + logPath + "*.log"
-		log.Error("infinitive.go cron 4 issue remove log files command: " + shellString)
-		shellCmd := exec.Command(shellString)
-		err := shellCmd.Run()
-		if err != nil {
-			log.Error("Infinitve.go cron 4, log file purge error: " + shellString)
+	cronJob4.AddFunc( "4 0 1 1,11,21 * *", func () {
+		// remove log files least they grow unbounded, using shell commands for this was futile
+		logName := logPath + "infinitiveError.log"
+		log.Error("infinitive.go cron 4 removing log file: " + logName )
+		if os.Remove( logName ) != nil {
+			log.Error("infinitive.go cron 4 issue remove Error log file: " + logName )
+		}
+		logName = logPath + "infinitiveOutput.log"
+		log.Error("infinitive.go cron 4 removing log file: " + logName )
+		if os.Remove( logName ) != nil {
+			log.Error("infinitive.go cron 4 issue remove Output log file: " + logName )
 		}
 	} )
 	cronJob4.Start()
