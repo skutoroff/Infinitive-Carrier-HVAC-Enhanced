@@ -1,0 +1,14 @@
+[Unit]
+Description=Infinitive Service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+StandardOutput=append:/var/log/infinitive/infinitiveOutput.log
+StandardError=append:/var/log/infinitive/infinitiveError.log
+ExecStart=/var/lib/infinitive/infinitive -httpport=8080 -serial=/dev/ttyS0
+[Install]
+WantedBy=multi-user.target
