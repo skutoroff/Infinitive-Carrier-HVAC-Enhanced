@@ -50,8 +50,10 @@ With no formal Go experience, I like Go better than other programming languages 
 The busy little Pi 4 at work
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/a440de6e-a8a3-4823-8291-c073e46d0aa3)
 
+
 Added Min & Max. Date is now YearDay()
 ![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/2a972b89-3766-4c19-bb56-86aca2d8ea3d)
+
 
 Earlier Chart
 ![Image](https://user-images.githubusercontent.com/7796742/235656510-4a0443b4-1b43-4674-a632-8b629df78702.png)
