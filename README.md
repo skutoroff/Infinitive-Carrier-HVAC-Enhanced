@@ -48,10 +48,10 @@ Besides improving the charts appearance and adding more time line options, I wan
 With no formal Go experience, I like Go better than other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first.
 
 The busy little Pi 4 at work
-![Image](https://user-images.githubusercontent.com/7796742/235656897-720388c3-07a2-48a0-982a-6f020c1dfb48.JPG)
+![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/a440de6e-a8a3-4823-8291-c073e46d0aa3)
 
-Added Min & Max
-![image](https://github.com/skutoroff/Infinitive-Enhanced/assets/7796742/d2ebc624-ed73-44ec-8003-dac037d208ea)
+Added Min & Max. Date is now YearDay()
+![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/2a972b89-3766-4c19-bb56-86aca2d8ea3d)
 
 Earlier Chart
 ![Image](https://user-images.githubusercontent.com/7796742/235656510-4a0443b4-1b43-4674-a632-8b629df78702.png)
