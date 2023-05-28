@@ -58,7 +58,7 @@ var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
 var	fileName		= "Infinitive.csv"
 var	logPath			= "/var/log/infinitive/"
-var TemperatureSuffix = "_Temperature.html"
+var ChartFileSuffix	= "_Chart.html"
 
 
 // aded: Global defs to support periodic write to file
@@ -210,20 +210,22 @@ func attachSnoops() {
 // Function to find HTML files and prepare table of links, bool argument controls table only or full html page
 func makeTableHTMLfiles( tableOnly bool ) {
 	// Identify the html files, produce 2 column html table of links
-	htmlLinks, err := os.OpenFile(filePath+"htmlLinks.html", os.O_CREATE|os.O_WRONLY, 0644)
+	htmlLinks, err := os.OpenFile(filePath+"htmlLinks.html", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-			log.Error("makeTableHTMLfiles:htmlFile Create Failure.")
+			log.Error("infinitive.makeTableHTMLfiles:htmlFile Create Failure.")
 	}
 	if !tableOnly {
 		timeStr := time.Now().Format("2006-01-02 15:04:05")
 		htmlLinks.WriteString( "<!-- infinitive.makeTableHTMLfiles(): " + timeStr + " -->\n" )
-		htmlLinks.WriteString( "<!DOCTYPE html>\n<html>\n<head>\n<title>HVAC Saved Measuremnts " + timeStr + "</title>\n</head>\n" )
+		htmlLinks.WriteString( "<!DOCTYPE html>\n<html lang=\"en\">\n" )
+		htmlLinks.WriteString( "<head>\n<title>HVAC Saved Measuremnts " + timeStr + "</title>\n" )
+		htmlLinks.WriteString( "<style>\n td {\n  text-align: center;\n  }\n table, th, td {\n  border: 1px solid;\n  border-spacing: 5px;\n  border-collapse: collapse;\n }\n</style>\n</head>\n" )
 		htmlLinks.WriteString( "<body>\n<h2>HVAC Saved Measuremnts " + timeStr + "</h2>\n" )
 	}
-	htmlLinks.WriteString( "<table width=\"600\" border=\"1\">\n" )
+	htmlLinks.WriteString( "<table width=\"500\">\n" )
 	files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
 	if err != nil {
-		log.Error("makeTableHTMLfiles() - file dirctory read error.")
+		log.Error("infinitive.makeTableHTMLfiles() - file dirctory read error.")
 		log.Error(err)
 	} else {
 		index = 0
@@ -232,18 +234,18 @@ func makeTableHTMLfiles( tableOnly bool ) {
 			length := len(fileName)
 			// Only process temperature html files...
 			if fileName[length-1] == 'l' && fileName[0]!='h' {
-				// make two column table...
-				if index % 2 == 0 {
+				// make three column table...
+				if index % 3 == 0 {
 					htmlLinks.WriteString( "  <tr>\n" )
 				}
-				htmlLinks.WriteString( "    <td><a href=\"" + filePath + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + fileName + "</a></td>\n" )
-					if index % 2 != 0 {
-						htmlLinks.WriteString( " </tr>\n" )
+				htmlLinks.WriteString( "    <td><a href=\"" + filePath + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + fileName[0:10] + "</a></td>\n" )
+				if index % 3 == 2 {
+					htmlLinks.WriteString( " </tr>\n" )
 				}
 				index++
 			}
 		}
-		if index % 2 == 1 {
+		if index % 3 == 1 {
 			htmlLinks.WriteString( " </tr>\n" )
 		}
 	}
@@ -302,7 +304,7 @@ func main() {
 	//		https://github.com/robfig/cron
 	// cron Job 1 - every 4 minutes - collect to Infinitive.csv
 	// cron Job 2 - after last data of the day - close, rename, open new Infinitive.csv, & produce html from last file
-	// cron Job 3 - purge daily files after 14 days
+	// cron Job 3 - purge daily files after 21 days
 	// cron job 4 - delete log files 3x per month
 	// Set up cron 1 for 4 minute data collection
 	cronJob1 := cron.New(cron.WithSeconds())
@@ -320,6 +322,7 @@ func main() {
 	cronJob2 := cron.New(cron.WithSeconds())
 	cronJob2.AddFunc( "2 59 23 * * *", func() {
 		// Close, rename, open new Infinitive.csv
+		log.Info("Infinitive cron 2 begins.\n")
 		err = fileHvacHistory.Close()
 		if err != nil {
 			log.Error("infinitive.go cron 2 - error closing:" + filePath+fileName)
@@ -346,9 +349,9 @@ func main() {
 			os.Exit(0)
 		}
 		// Read and prepare days data for charting
-		items1 := make( []opts.LineData, 0 )
-		items2 := make( []opts.LineData, 0 )
-		items3 := make( []opts.LineData, 0 )
+		items1 := make( []opts.LineData, 0 )		// Indoor Temperature
+		items2 := make( []opts.LineData, 0 )		// Outdoor Temperature
+		items3 := make( []opts.LineData, 0 )		// Blower RPM
 		index = 0
 		filescan := bufio.NewScanner( fileDaily )
 		for filescan.Scan() {
@@ -389,7 +392,9 @@ func main() {
 				index++
 			}
 		}
+		index--
 		fileDaily.Close()
+		log.Info("Infinitive cron 2 preparing chart: " + dailyFileName + "\n")
 		// echarts referenece: https://github.com/go-echarts/go-echarts
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
@@ -399,15 +404,17 @@ func main() {
 				Subtitle: "Indoor and Outdoor Temperatues from " + dailyFileName,
 			} ) )
 		// Chart the Indoor and Outdoor temps (to start). How to use date/time string as time?
-		Line.SetXAxis( dayf[0:index-1])
-		Line.AddSeries("Indoor Temp", 	items1[0:index-1])
-		Line.AddSeries("Outdoor Temp",	items2[0:index-1])
+		Line.SetXAxis( dayf[0:index])
+		Line.AddSeries("Indoor Temp", 	items1[0:index])
+		Line.AddSeries("Outdoor Temp",	items2[0:index])
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"}))
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
-		Line.AddSeries("Fan RPM%",		items3[0:index-1])
+		Line.AddSeries("Fan RPM%",		items3[0:index])
 		Line.SetSeriesOptions(charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
-		fileStr := fmt.Sprintf("%s%04d-%02d-%02d%s", filePath, dt.Year(), dt.Month(), dt.Day(), TemperatureSuffix)
-		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0664 )
+		// Render and save the html file...
+		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d%s", filePath, dt.Year(), dt.Month(), dt.Day(), ChartFileSuffix )
+		// Chart it all
+		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
 			Line.Render(io.MultiWriter(fHTML))
@@ -420,13 +427,11 @@ func main() {
 	cronJob2.Start()
 
 	// Set up cron 3 to purge old daily csv & html files
-	// Tried variations of below and file permissions, etc. Using shell exec does not work.
-	//	level=error msg on "find /var/lib/infinitive/*.csv -type f -mtime +14 -delete;"
-	//	level=error msg on "sudo find /var/lib/infinitive/*.csv -type f -mtime +14 -delete;"
-	//	level=error msg on "find /var/lib/infinitive/*.csv -type f -mtime +14 -exec rm -f {} ';'"
+	// Tried variations of shell exec does not work.
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 5 0 * * *", func () {
 		// Limitations as code elaborated: assumes file order is old 2 new.
+		log.Info("Infinitive cron 3 old file purge begins.\n")
 		count := 0
 		nowDayYear := time.Now().YearDay()
 		files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
@@ -443,7 +448,7 @@ func main() {
 					fFile, err := os.Stat( fullName )
 					if err == nil {
 						dayofYear := fFile.ModTime().YearDay()
-						if nowDayYear - dayofYear > 14 {
+						if nowDayYear - dayofYear > 21 {
 							count++
 							if os.Remove( fullName ) != nil {
 								log.Error( "Infinitve.go cron 3, csv, html file remove error: " + fullName )
@@ -460,9 +465,10 @@ func main() {
 	} )
 	cronJob3.Start()
 
-	// Set up cron 4 to delete log files 3x per month
+	// Set up cron 4 to delete log files 1st, 11th and 21st od the month
 	cronJob4 := cron.New(cron.WithSeconds())
 	cronJob4.AddFunc( "4 0 1 1,11,21 * *", func () {
+		log.Info("Infinitive cron 4 log filee reduction begins.\n")
 		// remove log files least they grow unbounded, using shell commands for this was futile
 		logName := logPath + "infinitiveError.log"
 		log.Error("infinitive.go cron 4 removing log file: " + logName )
@@ -476,7 +482,6 @@ func main() {
 		}
 	} )
 	cronJob4.Start()
-
 
 
 	go statePoller()
