@@ -23,9 +23,9 @@ The original disclaimer still applies. Maybe more so. (copied from the Infinitiv
 #### Hardware setup
 As with the project source developer, all my development is on with Raspberry Pi with Infinitive running on a Pi 4 and my development on a Pi 400. The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. A Pi Zero would probably do fine.
 
-I use a RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus. It worked as soon as the wires to the HVAC were connected in January 2023. I also have an as yet unused RS-485 to USB adapter, I’m sure it would work just as easily. It was my backup plan.
-TTL RS-485 is:	dlymore TTL Serial Port to RS485 Converter Module, was less than $7.45 with shipping from eBay.
-USB IF:	U-485 USB RS485 Serial Port Converter was $8.91 with shipping, also found on eBay.
+Using a RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus which worked as soon as the wires to the HVAC were connected in January 2023. Also have an as yet unused RS-485 to USB adapter, it is certain to would work just as easily and was the backup plan.
+TTL RS-485 interface is:	dlymore TTL Serial Port to RS485 Converter Module, was less than $7.45 with shipping from eBay.
+USB interface is:	U-485 USB RS485 Serial Port Converter was $8.91 with shipping, also found on eBay.
 
 Wiring uses solid core multi-conductor wire as intended for the purpose. Read the referenced GitHub project. The wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling and down to my network equipment (see “Problems Encountered).
 
@@ -42,13 +42,14 @@ The big problems now is understanding how to build the web user interface assets
 After trying to save collected data in arrays (later slices as I learned Go) I discovered that Infinitive crashes, a lot. Systemd did a great job of masking those events. The cause is in the serial driver AFAIK. Had to rewrite code to save data in files and work around the crashes which can occur in intervals from very short to as long as 8 hours observed  between them. It is not clear if household electrical activity is a contributor, the longer durations between crashes do seem to be at night.
 
 #### Plans
-Besides improving the charts appearance and adding more time line options, I want to modify the web server to display uptime for my own curiosity and add a table of links to the prepared charts. Currently looking to the web server side of the original source code now that the collection is stable. Working on editing and building the assets side.
+Besides improving the charts appearance and adding more time line options, plan to modify the web server to display uptime for my own curiosity and add a table of links to the prepared charts. Currently looking to the web server side of the original source code now that the collection is stable. Working on editing and building the assets side. Code uses bindata_assetsfx, can't build working UI changes, yet.
 
 #### Other Nonsense
-With no formal Go experience, I like Go better than other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first.
+With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought.
 
 The busy little Pi 4 at work
-![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/a440de6e-a8a3-4823-8291-c073e46d0aa3)
+
+![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
 
 Added Min & Max. Date is now YearDay()
@@ -56,5 +57,6 @@ Added Min & Max. Date is now YearDay()
 
 
 Earlier Chart
+
 ![Image](https://user-images.githubusercontent.com/7796742/235656510-4a0443b4-1b43-4674-a632-8b629df78702.png)
 
