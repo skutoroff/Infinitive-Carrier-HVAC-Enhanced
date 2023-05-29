@@ -353,6 +353,7 @@ func main() {
 		items2 := make( []opts.LineData, 0 )		// Outdoor Temperature
 		items3 := make( []opts.LineData, 0 )		// Blower RPM
 		index = 0
+		restarts := 0
 		filescan := bufio.NewScanner( fileDaily )
 		for filescan.Scan() {
 			s2 = filescan.Text()
@@ -390,18 +391,22 @@ func main() {
 				items2 = append( items2, opts.LineData{ Value: outTmp[index] } )
 				items3 = append( items3, opts.LineData{ Value: motRPM[index] } )
 				index++
+			} else {
+				restarts++
 			}
 		}
 		index--
 		fileDaily.Close()
 		log.Info("Infinitive cron 2 preparing chart: " + dailyFileName + "\n")
 		// echarts referenece: https://github.com/go-echarts/go-echarts
+		fMTBR := 24.0/float32(restarts-1)
+		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, MTBR=%6.3f hours", fileName, fMTBR )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
 			charts.WithTitleOpts(opts.Title{
 				Title:    "Infinitive " + Version + " HVAC Daily Chart",
-				Subtitle: "Indoor and Outdoor Temperatues from " + dailyFileName,
+				Subtitle: s2,
 			} ) )
 		// Chart the Indoor and Outdoor temps (to start). How to use date/time string as time?
 		Line.SetXAxis( dayf[0:index])
