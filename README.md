@@ -51,12 +51,6 @@ The busy little Pi 4 at work
 
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-
-Added Min & Max. Date is now YearDay()
-![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/2a972b89-3766-4c19-bb56-86aca2d8ea3d)
-
-
-Earlier Chart
-
-![Image](https://user-images.githubusercontent.com/7796742/235656510-4a0443b4-1b43-4674-a632-8b629df78702.png)
+Added display of MTBR (ave. time between resets) to subitle.
+![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/0e8401a3-c858-4c6b-bf19-30f7ab35f3c7)
 
