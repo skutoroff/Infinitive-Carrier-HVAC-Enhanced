@@ -322,7 +322,7 @@ func main() {
 	cronJob2 := cron.New(cron.WithSeconds())
 	cronJob2.AddFunc( "2 59 23 * * *", func() {
 		// Close, rename, open new Infinitive.csv
-		log.Info("Infinitive cron 2 begins.\n")
+		log.Error("Infinitive cron 2 begins.\n")
 		err = fileHvacHistory.Close()
 		if err != nil {
 			log.Error("infinitive.go cron 2 - error closing:" + filePath+fileName)
@@ -397,15 +397,15 @@ func main() {
 		}
 		index--
 		fileDaily.Close()
-		log.Info("Infinitive cron 2 preparing chart: " + dailyFileName + "\n")
+		log.Error("Infinitive cron 2 preparing chart: " + dailyFileName + "\n")
 		// echarts referenece: https://github.com/go-echarts/go-echarts
 		fMTBR := 24.0/float32(restarts-1)
-		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, MTBR=%6.3f hours", fileName, fMTBR )
+		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, MTBR=%6.3f hours", dailyFileName, fMTBR )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
 			charts.WithTitleOpts(opts.Title{
-				Title:    "Infinitive " + Version + " HVAC Daily Chart",
+				Title:    "Infinitive " + Version + " Daily HVAC Chart",
 				Subtitle: s2,
 			} ) )
 		// Chart the Indoor and Outdoor temps (to start). How to use date/time string as time?
@@ -436,7 +436,7 @@ func main() {
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 5 0 * * *", func () {
 		// Limitations as code elaborated: assumes file order is old 2 new.
-		log.Info("Infinitive cron 3 old file purge begins.\n")
+		log.Error("Infinitive cron 3 old file purge begins.\n")
 		count := 0
 		nowDayYear := time.Now().YearDay()
 		files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
@@ -473,7 +473,7 @@ func main() {
 	// Set up cron 4 to delete log files 1st, 11th and 21st od the month
 	cronJob4 := cron.New(cron.WithSeconds())
 	cronJob4.AddFunc( "4 0 1 1,11,21 * *", func () {
-		log.Info("Infinitive cron 4 log filee reduction begins.\n")
+		log.Error("Infinitive cron 4 log filee reduction begins.\n")
 		// remove log files least they grow unbounded, using shell commands for this was futile
 		logName := logPath + "infinitiveError.log"
 		log.Error("infinitive.go cron 4 removing log file: " + logName )
