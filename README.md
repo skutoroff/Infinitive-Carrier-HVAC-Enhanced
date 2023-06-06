@@ -27,9 +27,11 @@ Found two alternatives while shopping for the RS-485 interface, TTL and USB. The
 * (eBay) TTL RS-485 interface is:	dlymore TTL Serial Port to RS485 Converter Module, was less than $7.45 with shipping.
 * (eBay) USB interface is:	U-485 USB RS485 Serial Port Converter was $8.91 with shipping.
 
-Initially used the RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus which worked as soon as the wires to the HVAC were connected in January 2023. Immediately found a restart issue in the serial driver, which are frequent and found to occur between minutes and after many hours of operation. The code was adapted to these frequent restarts. Much later switched to the USB interface and found it to be stable. While it would have permitted a simpler code design, the path taken was educational.
+Initially used the RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus which worked as soon as the wires to the HVAC were connected in January 2023. Immediately found a restart issue in the serial driver, which are frequent and found to occur between minutes to after many hours of operation. The code was adapted to these frequent restarts. Much later switched to the USB interface and found it to be stable. While it would have permitted a simpler code design, the path taken was educational.
 
-Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option.
+There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Using TTL directly to the GPIO bus would avoid the need for a micro-USB to USB-A adapter. With systemd, the restarts are not an issue. This minor enhancement to Infinitive works around the restarts in collecting data for the charts. Might be worth investigating.
+
+Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option unless you want to use this version on a Pi Zero W (with header).
 
 #### Software
 Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 minute intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting is pretty simple. Lots is left to learn about the e-chart project. Another timer purges daily data and chart files older than 21 days. Another timer clears the log files 3x per month.
@@ -56,7 +58,7 @@ The busy little Pi 4 at work:
 Using USB-RS485
 ![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
 
-Using TTL-RS485 (deprecated)
+Using TTL-RS485
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
 Added display of MTBR (ave. time between resets) to subitle (soon to be #restarts).
