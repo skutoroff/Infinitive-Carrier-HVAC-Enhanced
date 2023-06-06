@@ -9,6 +9,6 @@ RestartSec=1
 User=root
 StandardOutput=append:/var/log/infinitive/infinitiveOutput.log
 StandardError=append:/var/log/infinitive/infinitiveError.log
-ExecStart=/var/lib/infinitive/infinitive -httpport=8080 -serial=/dev/ttyS0
+ExecStart=/var/lib/infinitive/infinitive -httpport=8080 -serial=/dev/ttyUSB0
 [Install]
 WantedBy=multi-user.target

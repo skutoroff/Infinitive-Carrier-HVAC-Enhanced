@@ -20,6 +20,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	// Below needed for alternative to using bindata_assetfs which cannot be found!
+	// "github.com/elazarl/go-bindata-assetfs"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -53,7 +55,7 @@ type HeatPump struct {
 
 var infinity *InfinityProtocol
 
-// String candidates for redefinition on build using -ldflags
+// Strings used throughout, may be changed using -ldflags on build if needed
 var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
 var	fileName		= "Infinitive.csv"
@@ -322,14 +324,14 @@ func main() {
 	cronJob2 := cron.New(cron.WithSeconds())
 	cronJob2.AddFunc( "2 59 23 * * *", func() {
 		// Close, rename, open new Infinitive.csv
-		log.Error("Infinitive cron 2 begins.\n")
+		log.Error("Infinitive cron 2 begins.")
 		err = fileHvacHistory.Close()
 		if err != nil {
 			log.Error("infinitive.go cron 2 - error closing:" + filePath+fileName)
 			os.Exit(0)
 		}
 		dailyFileName = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath, dt.Year(), dt.Month(), dt.Day(), fileName)
-		log.Info("infinitive.go cron 2 - daily filename: " + dailyFileName)
+		log.Error("infinitive.go cron 2 - daily filename: " + dailyFileName)
 		err = os.Rename(filePath+fileName,dailyFileName)
 		if err != nil {
 			log.Error("infinitive.go cron 2 - unable to rename old "+filePath+fileName+" to "+dailyFileName)
@@ -397,10 +399,9 @@ func main() {
 		}
 		index--
 		fileDaily.Close()
-		log.Error("Infinitive cron 2 preparing chart: " + dailyFileName + "\n")
+		log.Error("Infinitive cron 2 preparing chart: " + dailyFileName)
 		// echarts referenece: https://github.com/go-echarts/go-echarts
-		fMTBR := 24.0/float32(restarts-1)
-		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, MTBR=%6.3f hours", dailyFileName, fMTBR )
+		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, #restarts: %d hours", dailyFileName, restarts )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
@@ -436,7 +437,7 @@ func main() {
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 5 0 * * *", func () {
 		// Limitations as code elaborated: assumes file order is old 2 new.
-		log.Error("Infinitive cron 3 old file purge begins.\n")
+		log.Error("Infinitive cron 3 old file purge begins.")
 		count := 0
 		nowDayYear := time.Now().YearDay()
 		files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
@@ -473,7 +474,7 @@ func main() {
 	// Set up cron 4 to delete log files 1st, 11th and 21st od the month
 	cronJob4 := cron.New(cron.WithSeconds())
 	cronJob4.AddFunc( "4 0 1 1,11,21 * *", func () {
-		log.Error("Infinitive cron 4 log filee reduction begins.\n")
+		log.Error("Infinitive cron 4 log filee reduction begins.")
 		// remove log files least they grow unbounded, using shell commands for this was futile
 		logName := logPath + "infinitiveError.log"
 		log.Error("infinitive.go cron 4 removing log file: " + logName )
@@ -488,7 +489,10 @@ func main() {
 	} )
 	cronJob4.Start()
 
-
+	// Code using: https://github.com/elazarl/go-bindata-assetfs
 	go statePoller()
 	webserver(*httpPort)
+	// Below said to be needed for alternative to bindata_assetfs, remains unsolved.
+	//http.Handle("/", http.FileServer(
+	//	&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "data"}))
 }
