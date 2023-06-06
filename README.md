@@ -1,12 +1,10 @@
 # Infinitive Carrier HVAC - Enhanced
-Based on the project:
+Based on the project acd/infinitive:
 
-Reference:	https://github.com/acd/infinitive
-
-See also:	https://github.com/mww012/hass-infinitive
+* Reference:	https://github.com/acd/infinitive
+* See also:	https://github.com/mww012/hass-infinitive
 
 Start with the infinitive project before further reading here.
-
 
 The original disclaimer still applies. Maybe more so. (copied from the Infinitive README.md)
 
@@ -53,10 +51,13 @@ Besides improving the charts appearance and adding more time line options, plan 
 #### Other Nonsense
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought.
 
-The busy little Pi 4 at work
+The busy little Pi 4 at work:
 
+Using USB-RS485
+![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
+
+Using TTL-RS485 (deprecated)
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Added display of MTBR (ave. time between resets) to subitle.
+Added display of MTBR (ave. time between resets) to subitle (soon to be #restarts).
 ![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/0e8401a3-c858-4c6b-bf19-30f7ab35f3c7)
-
