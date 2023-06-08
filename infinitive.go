@@ -401,7 +401,7 @@ func main() {
 		fileDaily.Close()
 		log.Error("Infinitive cron 2 preparing chart: " + dailyFileName)
 		// echarts referenece: https://github.com/go-echarts/go-echarts
-		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, #restarts: %d hours", dailyFileName, restarts )
+		s2 = fmt.Sprintf("Indoor and Outdoor Temperatues from %s, #restarts: %d", dailyFileName, restarts-1 )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
