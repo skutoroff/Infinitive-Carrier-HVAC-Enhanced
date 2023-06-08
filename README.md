@@ -27,9 +27,9 @@ Found two alternatives while shopping for the RS-485 interface, TTL and USB. The
 * (eBay) TTL RS-485 interface is:	dlymore TTL Serial Port to RS485 Converter Module, was less than $7.45 with shipping.
 * (eBay) USB interface is:	U-485 USB RS485 Serial Port Converter was $8.91 with shipping.
 
-Initially used the RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus which worked as soon as the wires to the HVAC were connected in January 2023. Immediately found a restart issue in the serial driver, which are frequent and found to occur between minutes to after many hours of operation. The code was adapted to these frequent restarts. Much later switched to the USB interface and found it to be stable. While it would have permitted a simpler code design, the path taken was educational.
+Initially used the RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus which worked as soon as the wires to the HVAC were connected in January 2023. Immediately found a restart issue in the serial driver, which are frequent and found to occur between minutes to after many hours of operation. The code was adapted to these frequent restarts. Much later switched to the USB interface and found it to be stable over days and observed no incidents of lock up. While it would have permitted a simpler code design, the path taken was educational.
 
-There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Using TTL directly to the GPIO bus would avoid the need for a micro-USB to USB-A adapter. With systemd, the restarts are not an issue. This minor enhancement to Infinitive works around the restarts in collecting data for the charts. Might be worth investigating.
+There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Adding a header to the GPIO bus and using the TTL interface would avoid the need for a micro-USB to USB-A adapter. With systemd, the restarts are not an issue. This minor enhancement to Infinitive works around the restarts in collecting data for the charts. Might be worth investigating.
 
 Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option unless you want to use this version on a Pi Zero W (with header).
 
@@ -61,5 +61,5 @@ Using USB-RS485
 Using TTL-RS485
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Added display of MTBR (ave. time between resets) to subitle (soon to be #restarts).
-![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/0e8401a3-c858-4c6b-bf19-30f7ab35f3c7)
+Changed to show the number of restarts, the one restart was a software update.
+![2023-06-07_Chart](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/988c611f-15f8-4f63-83ff-301a5c5c855a)
