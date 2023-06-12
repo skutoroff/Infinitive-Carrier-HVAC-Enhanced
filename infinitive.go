@@ -472,12 +472,17 @@ func main() {
 			}  // for...
 		}
 		makeTableHTMLfiles( false )
+		// It has happended twice. After swiching from the TTL to the USB interface for RS-485, the program runs, but...
+		// after 24+ hours (unknown how long) the program collects data, but the cron 2 cycling and chart production fails.
+		// So, until this is understood, force a daily restart when these two tasks are done.
+		log.Error("Infinitive cron 2, Program Forceed Exit - allow Systemd restart. Something fails after running >24 hours.")
+		os.Exit(1)
 	} )
 	cronJob3.Start()
 
-	// Set up cron 4 to delete log files 1st, 11th and 21st od the month
+	// Set up cron 4 to delete log files 1st and 16th of the month
 	cronJob4 := cron.New(cron.WithSeconds())
-	cronJob4.AddFunc( "4 0 1 1,11,21 * *", func () {
+	cronJob4.AddFunc( "4 0 1 1,16 * *", func () {
 		log.Error("Infinitive cron 4 log filee reduction begins.")
 		// remove log files least they grow unbounded, using shell commands for this was futile
 		logName := logPath + "infinitiveError.log"
@@ -490,7 +495,9 @@ func main() {
 		if os.Remove( logName ) != nil {
 			log.Error("infinitive cron 4 issue remove Output log file: " + logName )
 		}
-	} )
+		// Log files are not re-opened after this purge. Force an exit and let Systmd sort it out.
+		log.Error("Infinitive cron 4, Program Forced Exit after log file purge.")
+		os.Exit(1)	} )
 	cronJob4.Start()
 
 	// Code using: https://github.com/elazarl/go-bindata-assetfs
