@@ -300,18 +300,19 @@ func main() {
 			log.Error("Infinitive Data File Open Failure.")
 	}
 	fileHvacHistory.WriteString( HeaderString )
+	log.Error("Infinitive Start/Restart.")
 
 	// References for periodic execution:
 	//		https://pkg.go.dev/github.com/robfig/cron?utm_source=godoc
 	//		https://github.com/robfig/cron
 	// cron Job 1 - every 4 minutes - collect to Infinitive.csv
 	// cron Job 2 - after last data of the day - close, rename, open new Infinitive.csv, & produce html from last file
-	// cron Job 3 - purge daily files after 21 days
-	// cron job 4 - delete log files 3x per month
+	// cron Job 3 - purge daily files after 28 days
+	// cron job 4 - delete log files 2x per month
 	// Set up cron 1 for 4 minute data collection
 	cronJob1 := cron.New(cron.WithSeconds())
 	cronJob1.AddFunc("0 */4 * * * *", func () {
-		dt := time.Now()
+		dt = time.Now()
 		// Consider including years fro 2023 in calculaton, 2023-05-01 is Julian 2460065
 		frcDay :=  float32(dt.YearDay()) + 4.16667*(float32(dt.Hour()) + float32(dt.Minute())/60.0)/100.0
 		s1 := fmt.Sprintf( "%s,%09.4f,%04d,%04d,%04d,%04d,%04d,%s\n", dt.Format("2006-01-02T15:04:05"),
@@ -320,34 +321,35 @@ func main() {
 	} )
 	cronJob1.Start()
 
-	// Set up cron 2 for daily file save after last collection, data clean up, and charting
+	// Set up cron 2 for daily file save after last collection, data clean up, and charting. Now with forced exit!
 	cronJob2 := cron.New(cron.WithSeconds())
 	cronJob2.AddFunc( "2 59 23 * * *", func() {
+		dt = time.Now()
 		// Close, rename, open new Infinitive.csv
-		log.Error("Infinitive cron 2 begins.")
+		log.Error("Infinitive cron 2 Begins.")
 		err = fileHvacHistory.Close()
 		if err != nil {
-			log.Error("infinitive cron 2 - error closing:" + filePath+fileName)
+			log.Error("infinitive cron 2 Error closing: " + filePath+fileName)
 			os.Exit(0)
 		}
 		dailyFileName = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath, dt.Year(), dt.Month(), dt.Day(), fileName)
-		log.Error("infinitive cron 2 - daily filename: " + dailyFileName)
+		log.Error("infinitive cron 2 Daily HVAC data file: " + dailyFileName)
 		err = os.Rename(filePath+fileName,dailyFileName)
 		if err != nil {
-			log.Error("infinitive cron 2 - unable to rename old "+filePath+fileName+" to "+dailyFileName)
+			log.Error("infinitive cron 2 Unable to rename old file: "+filePath+fileName+" to: "+dailyFileName )
 			os.Exit(0)
 		}
 		// Reopen/Open new Infinitive.csv
 		fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664 )
 		if err != nil {
-			log.Error("infinitive cron Job 2, error on reopen of:"+filePath+fileName)
+			log.Error("infinitive cron Job 2 Error on reopen of: "+filePath+fileName)
 			os.Exit(0)
 		}
 		fileHvacHistory.WriteString( HeaderString )
 		// Open the renamed file to read captured data
 		fileDaily, err := os.OpenFile( dailyFileName, os.O_RDONLY, 0 )
 		if err != nil {
-			log.Error("infinitive cron 2 - unable to open daily file for read: "+dailyFileName)
+			log.Error("infinitive cron 2 Unable to open daily file for read: "+dailyFileName)
 			os.Exit(0)
 		}
 		// Read and prepare days data for charting
@@ -360,7 +362,7 @@ func main() {
 		for filescan.Scan() {
 			s2 = filescan.Text()
 			if filescan.Err() != nil {
-				log.Error("infinitive cron 2. filesscan read error:" + s2)
+				log.Error("infinitive cron 2 file Scan read error:" + s2 )
 			}
 			if s2[0] != 'D' {		// Header lines start with D, skip'em
 				f64, err	= strconv.ParseFloat( s2[20:29], 32 )
@@ -399,9 +401,9 @@ func main() {
 		}
 		index--
 		fileDaily.Close()
-		log.Error("Infinitive cron 2 preparing chart from: " + dailyFileName)
+		log.Error("Infinitive cron 2 Preparing chart from: " + dailyFileName)
 		// echarts referenece: https://github.com/go-echarts/go-echarts
-		s2 = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #restarts: %d, vsn: %s", fileName, restarts-1, Version )
+		s2 = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, Vsn: %s", dailyFileName, restarts-1, Version )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
@@ -424,10 +426,10 @@ func main() {
 		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
+			log.Error("Infinitive cron 2 Begin rendering html file: " + fileStr )
 			Line.Render(io.MultiWriter(fHTML))
-			log.Error("Infinitive cron 2, creating html render file: " + fileStr )
 		} else {
-			log.Error("Infinitive cron 2, error creating html rendered file.")
+			log.Error("Infinitive cron 2 Error creating html chart: " + fileStr )
 		}
 		fHTML.Close()
 		err = os.Chmod( fileStr, 0664 )		// as set in OpeFile, still got 0644
@@ -437,34 +439,34 @@ func main() {
 	// Set up cron 3 to purge old daily csv & html files
 	// Tried variations of shell exec does not work.
 	cronJob3 := cron.New(cron.WithSeconds())
-	cronJob3.AddFunc( "3 5 0 * * *", func () {
+	cronJob3.AddFunc( "3 2 0 * * *", func () {
 		// Limitations as code elaborated: assumes file order is old 2 new.
-		log.Error("Infinitive cron 3 old file purge begins.")
+		log.Error("Infinitive cron 3 Begin purge old files.")
 		count := 0
 		nowDayYear := time.Now().YearDay()
 		files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
 		if err != nil {
-			log.Error( "Error cron job 3: - dirctory read error: " + filePath )
+			log.Error( "Infinitive cron 3 Directory read error: " + filePath )
 			log.Error(err)
 		} else {
 			for _, file := range files {
 				fileName := file.Name()
 				length := len(fileName)
 				fullName := filePath + fileName
-				// Process csv files...
+				// Process csv & html files...
 				if fileName[0]=='2' && (fileName[length-1] == 'v' || fileName[length-1] == 'l') {
 					fFile, err := os.Stat( fullName )
 					if err == nil {
 						dayofYear := fFile.ModTime().YearDay()
-						if nowDayYear - dayofYear > 21 {
+						if nowDayYear - dayofYear > 28 {
 							count++
 							if os.Remove( fullName ) != nil {
-								log.Error( "Infinitive cron 3, csv, html file remove error: " + fullName )
+								log.Error( "Infinitive cron 3 Error removing: " + fullName )
 							} else {
-								log.Error( "Infinitive cron 3, csv, html file removed file: " + fullName )
+								log.Error( "Infinitive cron 3 Removed file:   " + fullName )
 							}
 						}
-						if count > 3 { break }	// for now, limit number of deletes (expect  per day)
+						if count > 3 { break }	// Limit number of deletes (expect 2 per day).
 					} else {
 						log.Error( "Infinitive cron 3, can't os.Stat file: " + fullName )
 					}	// os.Stat issue
@@ -472,32 +474,28 @@ func main() {
 			}  // for...
 		}
 		makeTableHTMLfiles( false )
-		// It has happended twice. After swiching from the TTL to the USB interface for RS-485, the program runs, but...
-		// after 24+ hours (unknown how long) the program collects data, but the cron 2 cycling and chart production fails.
-		// So, until this is understood, force a daily restart when these two tasks are done.
-		log.Error("Infinitive cron 2, Program Forceed Exit - allow Systemd restart. Something fails after running >24 hours.")
-		os.Exit(1)
 	} )
 	cronJob3.Start()
 
 	// Set up cron 4 to delete log files 1st and 16th of the month
 	cronJob4 := cron.New(cron.WithSeconds())
 	cronJob4.AddFunc( "4 0 1 1,16 * *", func () {
-		log.Error("Infinitive cron 4 log filee reduction begins.")
+		log.Error("Infinitive cron 4 Begin log file cycling.")
 		// remove log files least they grow unbounded, using shell commands for this was futile
 		logName := logPath + "infinitiveError.log"
-		log.Error("infinitive cron 4 removing log file: " + logName )
+		log.Error("infinitive cron 4 Try removing Error log file:    " + logName )
 		if os.Remove( logName ) != nil {
-			log.Error("infinitive cron 4 issue remove Error log file: " + logName )
+			log.Error("infinitive cron 4 Error removing Error log file:  " + logName )
 		}
 		logName = logPath + "infinitiveOutput.log"
-		log.Error("infinitive cron 4 removing log file: " + logName )
+		log.Error("infinitive cron 4 Try removing Output log file:   " + logName )
 		if os.Remove( logName ) != nil {
-			log.Error("infinitive cron 4 issue remove Output log file: " + logName )
+			log.Error("infinitive cron 4 Error removing Output log file: " + logName )
 		}
 		// Log files are not re-opened after this purge. Force an exit and let Systmd sort it out.
-		log.Error("Infinitive cron 4, Program Forced Exit after log file purge.")
-		os.Exit(1)	} )
+		log.Error("Infinitive cron 4 Program Forced Exit after log file purge.")
+		os.Exit(1)
+	} )
 	cronJob4.Start()
 
 	// Code using: https://github.com/elazarl/go-bindata-assetfs
