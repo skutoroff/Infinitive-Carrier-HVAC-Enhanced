@@ -34,6 +34,9 @@ There is one use-case for the TTL interface. Infinitive should run quite well on
 Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option unless you want to use this version on a Pi Zero W (with header).
 
 #### Software
+
+News: Revising code to simplify file operation and make charts showing current at 6 hour intervals. By July 1 for sure.
+
 Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 minute intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting was pretty simple. Lots is left to learn about the e-chart project. Another timer purges daily data and chart files older than 28 days. Another timer clears the log files 2x per month.
 The error log file grew fast with the TTL interface; with the USB interface it contains only the added error messages.
 
