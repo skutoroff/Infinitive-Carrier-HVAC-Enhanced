@@ -20,12 +20,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	// Below needed for alternative to using bindata_assetfs which cannot be found!
-	// "github.com/elazarl/go-bindata-assetfs"
-
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	// Below needed for alternative to using bindata_assetfs which cannot be found!
+	// "github.com/elazarl/go-bindata-assetfs"
 )
 
 type TStatZoneConfig struct {
@@ -58,7 +57,6 @@ var infinity *InfinityProtocol
 // Strings used throughout, may be changed using -ldflags on build if needed
 var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
-var	fileName		= "Infinitive.csv"
 var	logPath			= "/var/log/infinitive/"
 var ChartFileSuffix	= "_Chart.html"
 
@@ -67,7 +65,9 @@ var ChartFileSuffix	= "_Chart.html"
 var fileHvacHistory *os.File
 var blowerRPM       uint16
 var	currentTemp     uint8
+var	currentTempPrev	uint8 = 0		// Save of previous value for spike removeal.
 var	outdoorTemp     uint8
+var	outdoorTempPrev	uint8 = 0		// Save of previous value for spike removeal.
 var	heatSet			uint8
 var	coolSet			uint8
 var	hvacMode		string
@@ -76,6 +76,7 @@ var	inTemp			int
 var	fanRPM			int
 var	index			int
 var	htmlChartTable	string
+var	fileName		string
 
 
 // Original Infinitive code with minor changes...
@@ -209,12 +210,12 @@ func attachSnoops() {
 
 }
 
-// Function to find HTML files and prepare table of links, bool argument controls table only or full html page
+// Find HTML files and prepare 3 column link table; bool argument controls table only or full html page.
 func makeTableHTMLfiles( tableOnly bool ) {
-	// Identify the html files, produce 2 column html table of links
+	// Identify the html files, produce table of links, table only or full html page.
 	htmlLinks, err := os.OpenFile(filePath+"htmlLinks.html", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-			log.Error("infinitive.makeTableHTMLfiles:htmlFile Create Failure.")
+			log.Error("infinitive.makeTableHTMLfiles - htmlLinks.html Create Failure.")
 	}
 	if !tableOnly {
 		timeStr := time.Now().Format("2006-01-02 15:04:05")
@@ -227,8 +228,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 	htmlLinks.WriteString( "<table width=\"500\">\n" )
 	files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
 	if err != nil {
-		log.Error("infinitive.makeTableHTMLfiles() - file dirctory read error.")
-		log.Error(err)
+		log.Error("infinitive.makeTableHTMLfiles - Dirctory Read Error.")
 	} else {
 		index = 0
 		for _, file := range files {
@@ -240,13 +240,14 @@ func makeTableHTMLfiles( tableOnly bool ) {
 				if index % 3 == 0 {
 					htmlLinks.WriteString( "  <tr>\n" )
 				}
+				// Only show the date part of the filename.
 				htmlLinks.WriteString( "    <td><a href=\"" + filePath + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + fileName[0:10] + "</a></td>\n" )
 				if index % 3 == 2 {
 					htmlLinks.WriteString( " </tr>\n" )
 				}
 				index++
-			}
-		}
+			}	// file ends with 'l' or starts with 'h' (the files we want.
+		}  // end for
 		if index % 3 == 1 {
 			htmlLinks.WriteString( " </tr>\n" )
 		}
@@ -259,9 +260,24 @@ func makeTableHTMLfiles( tableOnly bool ) {
 	return
 }
 
+// The HVAC data file is opened and closed in different modes at multiple places.
+func OpenDailyFile( timeIs time.Time, fileFlags int, needHeader bool ) (DailyFile *os.File, fileNameIs string) {
+	var err error
+
+	fileNameIs = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath, timeIs.Year(), timeIs.Month(), timeIs.Day(), "Infinitive.csv")
+	log.Error( "infinitive.OpenDailyFile, Daily File: " + fileNameIs )
+	DailyFile, err = os.OpenFile(fileNameIs, fileFlags, 0664 )
+	if err != nil {
+		log.Error( "Infinitive OpenDailyFile Create File Failure." )
+	}
+	if needHeader {
+		DailyFile.WriteString( "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp,blowerRPM\n" )
+	}
+	return
+}
+
 func main() {
-	var HeaderString	= "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp,blowerRPM\n"
-	var dailyFileName, s2	string
+	var dailyFileName, text	string
 	var f64					float64
 
 	httpPort := flag.Int("httpport", 8080, "HTTP port to listen on")
@@ -293,64 +309,80 @@ func main() {
 	inTmp	:= make( [] int,	 2000 )
 	outTmp	:= make( [] int,	 2000 )
 	motRPM	:= make( [] int,	 2000 )
+	outdoorTempPrev = 0
+	currentTempPrev = 0
+
+	//	Save the data in a date prefix name file
 	dt := time.Now()
-	//	Save the data in a file, observed crashing requires charting from file
-	fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664 )
-	if err != nil {
-			log.Error("Infinitive Data File Open Failure.")
-	}
-	fileHvacHistory.WriteString( HeaderString )
+	fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
 	log.Error("Infinitive Start/Restart.")
 
 	// References for periodic execution:
 	//		https://pkg.go.dev/github.com/robfig/cron?utm_source=godoc
 	//		https://github.com/robfig/cron
-	// cron Job 1 - every 4 minutes - collect to Infinitive.csv
-	// cron Job 2 - after last data of the day - close, rename, open new Infinitive.csv, & produce html from last file
-	// cron Job 3 - purge daily files after 28 days
-	// cron job 4 - delete log files 2x per month
-	// Set up cron 1 for 4 minute data collection
+	// cron Job 1 - collect data to file every 4 minutes and fix funky values. Start new file at top of the day.
+	// cron Job 2 - 4x per day, produce chart and html table.
+	// cron Job 3 - delete files after 28 days.
+	// cron job 4 - delete log files 2x per month.
+
+	// Set up cron 1 - 4 minute data collection, fix data, cycle file at top of new day.
 	cronJob1 := cron.New(cron.WithSeconds())
 	cronJob1.AddFunc("0 */4 * * * *", func () {
 		dt = time.Now()
-		// Consider including years fro 2023 in calculaton, 2023-05-01 is Julian 2460065
+		// Are we at the start of a new day? If so, close yesterdays daily file and open a new one.
+		if dt.Hour()==0 && dt.Minute()==0 {
+			err = fileHvacHistory.Close()
+			if err != nil {
+				log.Error("infinitive cron 2 Error closing daily:  " + dailyFileName)
+			}
+			// Open new file with new date
+			fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
+		}
+		// Consider decimal part calculation with year from 2023, 2023-01-01 is Julian 2459945.5
 		frcDay :=  float32(dt.YearDay()) + 4.16667*(float32(dt.Hour()) + float32(dt.Minute())/60.0)/100.0
-		s1 := fmt.Sprintf( "%s,%09.4f,%04d,%04d,%04d,%04d,%04d,%s\n", dt.Format("2006-01-02T15:04:05"),
-							frcDay,heatSet, coolSet, outdoorTemp, currentTemp, blowerRPM, hvacMode )
-		fileHvacHistory.WriteString(s1)
+		// Fix the too frequent 0 or 1 spikes in raw data and range check.
+		if ( ( outdoorTemp==0 || outdoorTemp==1 ) && outdoorTempPrev>10 ) || outdoorTemp>130 {
+			outdoorTemp = outdoorTempPrev
+		} else {
+			outdoorTempPrev = outdoorTemp
+		}
+		// indoor temp can also be damaged
+		if currentTemp<32 || currentTemp>115 {
+			currentTemp = currentTempPrev
+		} else {
+			currentTempPrev = currentTemp
+		}
+		// Set blower RPM as % where off(0), low(34), med(66), high(100), makes %rpm range match temp range
+		if blowerRPM < 200 {
+			blowerRPM = 0
+		} else if blowerRPM < 550 {
+			blowerRPM = 34
+		} else if motRPM[index] < 750 {
+			blowerRPM = 66
+		} else {
+			blowerRPM = 100
+		}
+		// Future: fix hvacMode, it is sometimes "unknown", but we don't use it.
+		outLine := fmt.Sprintf( "%s,%09.4f,%04d,%04d,%04d,%04d,%04d,%s\n", dt.Format("2006-01-02T15:04:05"),
+							frcDay, heatSet, coolSet, outdoorTemp, currentTemp, blowerRPM, hvacMode )
+		fileHvacHistory.WriteString(outLine)
 	} )
 	cronJob1.Start()
 
-	// Set up cron 2 for daily file save after last collection, data clean up, and charting. Now with forced exit!
+	// Set up cron 2 for charting daily file every 6 hours.
 	cronJob2 := cron.New(cron.WithSeconds())
-	cronJob2.AddFunc( "2 59 23 * * *", func() {
+	cronJob2.AddFunc( "2 59 5,11,17,23 * * *", func() {
+		log.Error("Infinitive cron 2 Begins.")
 		dt = time.Now()
 		// Close, rename, open new Infinitive.csv
-		log.Error("Infinitive cron 2 Begins.")
 		err = fileHvacHistory.Close()
 		if err != nil {
-			log.Error("infinitive cron 2 Error closing: " + filePath+fileName)
-			os.Exit(0)
+			log.Error("infinitive cron 2 Error closing: " + dailyFileName)
 		}
-		dailyFileName = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath, dt.Year(), dt.Month(), dt.Day(), fileName)
-		log.Error("infinitive cron 2 Daily HVAC data file: " + dailyFileName)
-		err = os.Rename(filePath+fileName,dailyFileName)
+		// Open new file with todays date in name to read captured data.
+		fileHvacHistory, err = os.OpenFile( dailyFileName, os.O_RDONLY, 0 )
 		if err != nil {
-			log.Error("infinitive cron 2 Unable to rename old file: "+filePath+fileName+" to: "+dailyFileName )
-			os.Exit(0)
-		}
-		// Reopen/Open new Infinitive.csv
-		fileHvacHistory, err = os.OpenFile(filePath+fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664 )
-		if err != nil {
-			log.Error("infinitive cron Job 2 Error on reopen of: "+filePath+fileName)
-			os.Exit(0)
-		}
-		fileHvacHistory.WriteString( HeaderString )
-		// Open the renamed file to read captured data
-		fileDaily, err := os.OpenFile( dailyFileName, os.O_RDONLY, 0 )
-		if err != nil {
-			log.Error("infinitive cron 2 Unable to open daily file for read: "+dailyFileName)
-			os.Exit(0)
+			log.Error("infinitive cron 2 Unable to read daily file: "+dailyFileName)
 		}
 		// Read and prepare days data for charting
 		items1 := make( []opts.LineData, 0 )		// Indoor Temperature
@@ -358,39 +390,19 @@ func main() {
 		items3 := make( []opts.LineData, 0 )		// Blower RPM
 		index = 0
 		restarts := 0
-		filescan := bufio.NewScanner( fileDaily )
+		filescan := bufio.NewScanner( fileHvacHistory )
 		for filescan.Scan() {
-			s2 = filescan.Text()
+			text = filescan.Text()
 			if filescan.Err() != nil {
-				log.Error("infinitive cron 2 file Scan read error:" + s2 )
+				log.Error("infinitive cron 2 file Scan read error:" + text )
 			}
-			if s2[0] != 'D' {		// Header lines start with D, skip'em
-				f64, err	= strconv.ParseFloat( s2[20:29], 32 )
+			if text[0] != 'D' {		// Header lines start with D, skip'em
+				f64, err	= strconv.ParseFloat( text[20:29], 32 )
 				dayf[index]	= float32(f64)
-				// Extract and save the indoor and outdoor temps in the slices (not yet used)
-				outTmp[index], err	= strconv.Atoi( s2[40:44] )
-				// fix for the too frequent 0 spikes in raw data
-				if outTmp[index]==0 || outTmp[index]>130 {		// outTmp could be 0, but likely an error
-					outTmp[index] = outTmp[index-1]				// worry about index==0 later
-				}
-				if outTmp[index]==1 && outTmp[index-1]>25 { 	// we get down spikes to 1 as well as 0
-					outTmp[index] = outTmp[index-1]				// again, worry about inedx==0 later
-				}
-				inTmp[index], err	= strconv.Atoi( s2[45:49] )
-				if inTmp[index]==0 || inTmp[index]>110 {
-					inTmp[index] = inTmp[index-1]				// worry about index==0 later
-				}
-				motRPM[index], err = strconv.Atoi( s2[50:54] )
-				// Set low-med-Hi ranges to improve chart, for now %rpm range matches temp degree range
-				if motRPM[index] < 200 {
-					motRPM[index] = 0
-				} else if motRPM[index] < 550 {
-					motRPM[index] = 34
-				} else if motRPM[index] < 750 {
-					motRPM[index] = 66
-				} else {
-					motRPM[index] = 100
-				}
+				// Extract and save the indoor temp, outdoor temps, and blower RPM in slices.
+				outTmp[index], err	= strconv.Atoi( text[40:44] )
+				inTmp[index], err	= strconv.Atoi( text[45:49] )
+				motRPM[index], err	= strconv.Atoi( text[50:54] )
 				items1 = append( items1, opts.LineData{ Value: inTmp[index]  } )
 				items2 = append( items2, opts.LineData{ Value: outTmp[index] } )
 				items3 = append( items3, opts.LineData{ Value: motRPM[index] } )
@@ -399,17 +411,29 @@ func main() {
 				restarts++
 			}
 		}
+		// If not end of day run, add data sets to match full day chart.
+		if dt.Hour() != 23 {
+			base := dayf[index-1]
+			for i := index; i<360; i++ {		// 60/4 * 24 = 360
+				base += 0.002777				// Next four minute point.
+				dayf[i]= base
+				items1 = append( items1, opts.LineData{ Value: 0 } )
+				items2 = append( items2, opts.LineData{ Value: 0 } )
+				items3 = append( items3, opts.LineData{ Value: 0 } )
+				index++
+			}
+		}
 		index--
-		fileDaily.Close()
-		log.Error("Infinitive cron 2 Preparing chart from: " + dailyFileName)
+		fileHvacHistory.Close()
+		log.Error("Infinitive cron 2 Preparing chart: " + dailyFileName)
 		// echarts referenece: https://github.com/go-echarts/go-echarts
-		s2 = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, Vsn: %s", dailyFileName, restarts-1, Version )
+		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, Vsn: %s", dailyFileName, restarts-1, Version )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
 			charts.WithTitleOpts(opts.Title{
 				Title:    "Infinitive HVAC Daily Chart",
-				Subtitle: s2,
+				Subtitle: text,
 			}, ),
 		)
 		// Chart the Indoor and Outdoor temps (to start). How to use date/time string as time?
@@ -419,25 +443,35 @@ func main() {
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"}))
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
 		Line.AddSeries("Fan RPM%",		items3[0:index])
-		Line.SetSeriesOptions(charts.WithLineChartOpts(opts.LineChart{Smooth: true}))
+		Line.SetSeriesOptions( charts.WithLineChartOpts( opts.LineChart{Smooth: true} ) )
+		// -- In Progress -- Need axis names.
+		// Below is not entirely correct, Name placement is wrong & AxisLabel does nothing.
+		Line.SetGlobalOptions(
+			charts.WithXAxisOpts( opts.XAxis{ AxisLabel: &opts.AxisLabel{Rotate: 45, ShowMinLabel: true, ShowMaxLabel: true, Interval: "0" }, }, ),
+			charts.WithXAxisOpts( opts.XAxis{ Name: "Time", }, ),	//Type: "time",  }, ),	<<-- Results in diagonal plot
+			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp", }, ), 	//Type: "value", position: "right", }, ),
+		)
 		// Render and save the html file...
-		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d%s", filePath, dt.Year(), dt.Month(), dt.Day(), ChartFileSuffix )
+		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d_Chart.html", filePath, dt.Year(), dt.Month(), dt.Day() )
 		// Chart it all
 		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
-			log.Error("Infinitive cron 2 Begin rendering html file: " + fileStr )
+			log.Error("Infinitive cron 2 Render to html:  " + fileStr )
 			Line.Render(io.MultiWriter(fHTML))
 		} else {
-			log.Error("Infinitive cron 2 Error creating html chart: " + fileStr )
+			log.Error("Infinitive cron 2 Error html file: " + fileStr )
 		}
 		fHTML.Close()
 		err = os.Chmod( fileStr, 0664 )		// as set in OpeFile, still got 0644
+		// Re-open the HVAV history file to write more data, hence append.
+		fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, false )
+		makeTableHTMLfiles( false )
 	} )
 	cronJob2.Start()
 
 	// Set up cron 3 to purge old daily csv & html files
-	// Tried variations of shell exec does not work.
+	// Note: Tried variations of shell exec for this, none worked.
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 2 0 * * *", func () {
 		// Limitations as code elaborated: assumes file order is old 2 new.
@@ -466,9 +500,9 @@ func main() {
 								log.Error( "Infinitive cron 3 Removed file:   " + fullName )
 							}
 						}
-						if count > 3 { break }	// Limit number of deletes (expect 2 per day).
+						if count > 3 { break }	// Limit number of deletes (expect 3 per day).
 					} else {
-						log.Error( "Infinitive cron 3, can't os.Stat file: " + fullName )
+						log.Error( "Infinitive cron 3, can't os.Stat: " + fullName )
 					}	// os.Stat issue
 				} // fileName is match
 			}  // for...
@@ -481,20 +515,20 @@ func main() {
 	cronJob4 := cron.New(cron.WithSeconds())
 	cronJob4.AddFunc( "4 0 1 1,16 * *", func () {
 		log.Error("Infinitive cron 4 Begin log file cycling.")
-		// remove log files least they grow unbounded, using shell commands for this was futile
+		// remove log files least they grow unbounded, using shell commands for this was futile.
 		logName := logPath + "infinitiveError.log"
-		log.Error("infinitive cron 4 Try removing Error log file:    " + logName )
+		log.Error("infinitive cron 4 Removing Error log file:  " + logName )
 		if os.Remove( logName ) != nil {
-			log.Error("infinitive cron 4 Error removing Error log file:  " + logName )
+			log.Error("infinitive cron 4 Removing Error log FAIL:  " + logName )
 		}
 		logName = logPath + "infinitiveOutput.log"
-		log.Error("infinitive cron 4 Try removing Output log file:   " + logName )
+		log.Error("infinitive cron 4 Removing Output log file: " + logName )
 		if os.Remove( logName ) != nil {
-			log.Error("infinitive cron 4 Error removing Output log file: " + logName )
+			log.Error("infinitive cron 4 Removing Output log FAIL: " + logName )
 		}
 		// Log files are not re-opened after this purge. Force an exit and let Systmd sort it out.
 		log.Error("Infinitive cron 4 Program Forced Exit after log file purge.")
-		os.Exit(1)
+		os.Exit(1)		// Required so new log files are opened.
 	} )
 	cronJob4.Start()
 
