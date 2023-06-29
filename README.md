@@ -40,7 +40,7 @@ The error log file grew fast with the TTL interface; with the USB interface it c
 
 As for the time axis in the charts, have not yet figured out how to set up text format time in the scale. So, the daily data include a date.dayFraction representation of time for the time scale. Just wanted to see a chart more than I wanted to learn e-charts at the time. May later adapt to a more Julian date style.
 
-Code adding the axis names works, but it places the Y-axis name above the axis line which puts it under/over the chart subtitle. The X-axis name is just to the right of the axis line. Have not found suitable example code to mimic that both builds and places the axis names in middle of the axis and verticl for the Y-axis, etc. Examples found to date are very basic, more educational rather than complete (IMHO). Originally, the daily chart was produced just before midnight. Current version produces partial charts during the day.
+Code adding the axis names works, but it places the Y-axis name above the axis line which puts it under/over the chart subtitle. The X-axis name is just to the right of the axis line. Have not found suitable example code to mimic that both builds and places the axis names in middle of the X-axis and vertical for the Y-axis, etc. Examples found to date are very basic, more educational rather than complete (IMHO). Originally, the daily chart was produced just before midnight. Current version also produces partial charts during the day.
 
 As noted, Infinitive runs under Systemd. Added redirection of output and error logs to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
 The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. One day blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis names are needed as well. So it goes.
@@ -50,7 +50,7 @@ The big problems remaining is building the web user interface assets in order to
 To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd, see the second link at top. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
 #### Problems Encountered.
-As noted above, the TTL interface is far less stable than the USB interface. Most early development problems would have been avoided had I never tried the TTL interface. I also would have learned less Go. Plannong to test TTL RS-485 with Infinitive on a Pi Zero WH, just to see it work.
+As noted above, the TTL interface is far less stable than the USB interface. Most early development problems would have been avoided had I never tried the TTL interface. I also would have learned less Go. Planning to test TTL RS-485 with Infinitive on a Pi Zero WH, just to see it work.
 
 #### Other Nonsense
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
@@ -65,3 +65,6 @@ Using TTL-RS485
 
 Changed to show the number of restarts, the one restart was a software update.
 ![2023-06-07_Chart](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/988c611f-15f8-4f63-83ff-301a5c5c855a)
+
+Latest version, a current day chart at 16:00. My AC is amazingly powerful. When running, it actually changes the outdoor temperature! I ought to shade the condensor from the sun.
+![2023-06-29_Chart 16 00](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/67a08d8c-0ceb-4fc5-a4c9-231a57aa7945)
