@@ -265,7 +265,7 @@ func OpenDailyFile( timeIs time.Time, fileFlags int, needHeader bool ) (DailyFil
 	var err error
 
 	fileNameIs = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath, timeIs.Year(), timeIs.Month(), timeIs.Day(), "Infinitive.csv")
-	log.Error( "infinitive.OpenDailyFile, Daily File: " + fileNameIs )
+	log.Error( "infinitive.OpenDailyFile, Daily:   " + fileNameIs )
 	DailyFile, err = os.OpenFile(fileNameIs, fileFlags, 0664 )
 	if err != nil {
 		log.Error( "Infinitive OpenDailyFile Create File Failure." )
@@ -357,7 +357,7 @@ func main() {
 			blowerRPM = 0
 		} else if blowerRPM < 550 {
 			blowerRPM = 34
-		} else if motRPM[index] < 750 {
+		} else if blowerRPM < 750 {
 			blowerRPM = 66
 		} else {
 			blowerRPM = 100
@@ -369,9 +369,9 @@ func main() {
 	} )
 	cronJob1.Start()
 
-	// Set up cron 2 for charting daily file every 6 hours.
+	// Set up cron 2 for charting daily file at two hour intevals during the day, less at night.
 	cronJob2 := cron.New(cron.WithSeconds())
-	cronJob2.AddFunc( "2 59 5,11,17,23 * * *", func() {
+	cronJob2.AddFunc( "2 59 5,7,9,11,13,15,17,19,23 * * *", func() {
 		log.Error("Infinitive cron 2 Begins.")
 		dt = time.Now()
 		// Close, rename, open new Infinitive.csv
@@ -411,15 +411,16 @@ func main() {
 				restarts++
 			}
 		}
+		lastData := index-1
 		// If not end of day run, add data sets to match full day chart.
 		if dt.Hour() != 23 {
-			base := dayf[index-1]
-			for i := index; i<360; i++ {		// 60/4 * 24 = 360
+			base := dayf[index-1] + 0.002777	// bis to match day end time
+			for i := index; i<359; i++ {		// 60/4 * 24 = 360
 				base += 0.002777				// Next four minute point.
 				dayf[i]= base
-				items1 = append( items1, opts.LineData{ Value: 0 } )
-				items2 = append( items2, opts.LineData{ Value: 0 } )
-				items3 = append( items3, opts.LineData{ Value: 0 } )
+				//items1 = append( items1, opts.LineData{ Value: 0 } )
+				//items2 = append( items2, opts.LineData{ Value: 0 } )
+				//items3 = append( items3, opts.LineData{ Value: 0 } )
 				index++
 			}
 		}
@@ -438,11 +439,11 @@ func main() {
 		)
 		// Chart the Indoor and Outdoor temps (to start). How to use date/time string as time?
 		Line.SetXAxis( dayf[0:index])
-		Line.AddSeries("Indoor Temp", 	items1[0:index])
-		Line.AddSeries("Outdoor Temp",	items2[0:index])
+		Line.AddSeries("Indoor Temp", 	items1[0:lastData])
+		Line.AddSeries("Outdoor Temp",	items2[0:lastData])
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Minimum", Type: "min"}))
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
-		Line.AddSeries("Fan RPM%",		items3[0:index])
+		Line.AddSeries("Fan RPM%",		items3[0:lastData])
 		Line.SetSeriesOptions( charts.WithLineChartOpts( opts.LineChart{Smooth: true} ) )
 		// -- In Progress -- Need axis names.
 		// Below is not entirely correct, Name placement is wrong & AxisLabel does nothing.
