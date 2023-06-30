@@ -221,9 +221,9 @@ func makeTableHTMLfiles( tableOnly bool ) {
 		timeStr := time.Now().Format("2006-01-02 15:04:05")
 		htmlLinks.WriteString( "<!-- infinitive.makeTableHTMLfiles(): " + timeStr + " -->\n" )
 		htmlLinks.WriteString( "<!DOCTYPE html>\n<html lang=\"en\">\n" )
-		htmlLinks.WriteString( "<head>\n<title>HVAC Saved Measuremnts " + timeStr + "</title>\n" )
+		htmlLinks.WriteString( "<head>\n<title>HVAC Saved Measurements " + timeStr + "</title>\n" )
 		htmlLinks.WriteString( "<style>\n td {\n  text-align: center;\n  }\n table, th, td {\n  border: 1px solid;\n  border-spacing: 5px;\n  border-collapse: collapse;\n }\n</style>\n</head>\n" )
-		htmlLinks.WriteString( "<body>\n<h2>HVAC Saved Measuremnts " + timeStr + "</h2>\n" )
+		htmlLinks.WriteString( "<body>\n<h2>HVAC Saved Measurements " + timeStr + "</h2>\n" )
 	}
 	htmlLinks.WriteString( "<table width=\"500\">\n" )
 	files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
@@ -320,9 +320,9 @@ func main() {
 	// References for periodic execution:
 	//		https://pkg.go.dev/github.com/robfig/cron?utm_source=godoc
 	//		https://github.com/robfig/cron
-	// cron Job 1 - collect data to file every 4 minutes and fix funky values. Start new file at top of the day.
-	// cron Job 2 - 4x per day, produce chart and html table.
-	// cron Job 3 - delete files after 28 days.
+	// cron Job 1 - collect data to file every 4 minutes, fix funky values, and start new file at top of the day.
+	// cron Job 2 - produce chart and html table before midnight and 2 hours apart from 06:00 to 22:00
+	// cron Job 3 - delete csv and html files after 28 days.
 	// cron job 4 - delete log files 2x per month.
 
 	// Set up cron 1 - 4 minute data collection, fix data, cycle file at top of new day.
@@ -412,15 +412,12 @@ func main() {
 			}
 		}
 		lastData := index-1
-		// If not end of day run, add data sets to match full day chart.
+		// If not end of day run, extend time X-axis to expected length.
 		if dt.Hour() != 23 {
-			base := dayf[index-1] + 0.002777	// bis to match day end time
+			base := dayf[index-1] + 0.002777	// bias to match day end time
 			for i := index; i<359; i++ {		// 60/4 * 24 = 360
 				base += 0.002777				// Next four minute point.
 				dayf[i]= base
-				//items1 = append( items1, opts.LineData{ Value: 0 } )
-				//items2 = append( items2, opts.LineData{ Value: 0 } )
-				//items3 = append( items3, opts.LineData{ Value: 0 } )
 				index++
 			}
 		}
@@ -445,12 +442,11 @@ func main() {
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
 		Line.AddSeries("Fan RPM%",		items3[0:lastData])
 		Line.SetSeriesOptions( charts.WithLineChartOpts( opts.LineChart{Smooth: true} ) )
-		// -- In Progress -- Need axis names.
-		// Below is not entirely correct, Name placement is wrong & AxisLabel does nothing.
+		// -- In Progress -- Need axis name placement fixed. Y-axis name buried under subtitle, X-axis name to right.
 		Line.SetGlobalOptions(
 			charts.WithXAxisOpts( opts.XAxis{ AxisLabel: &opts.AxisLabel{Rotate: 45, ShowMinLabel: true, ShowMaxLabel: true, Interval: "0" }, }, ),
-			charts.WithXAxisOpts( opts.XAxis{ Name: "Time", }, ),	//Type: "time",  }, ),	<<-- Results in diagonal plot
-			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp", }, ), 	//Type: "value", position: "right", }, ),
+			charts.WithXAxisOpts( opts.XAxis{ Name: "Time YearDay.frac", }, ),	//Type: "time",  }, ),						<<-- Results in diagonal plot
+			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp & Blower", }, ), 		//Type: "value", position: "right", }, ),	<<<--wrong.
 		)
 		// Render and save the html file...
 		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d_Chart.html", filePath, dt.Year(), dt.Month(), dt.Day() )
@@ -496,9 +492,9 @@ func main() {
 						if nowDayYear - dayofYear > 28 {
 							count++
 							if os.Remove( fullName ) != nil {
-								log.Error( "Infinitive cron 3 Error removing: " + fullName )
+								log.Error( "Infinitive cron 3 Error removing:  " + fullName )
 							} else {
-								log.Error( "Infinitive cron 3 Removed file:   " + fullName )
+								log.Error( "Infinitive cron 3 Removed file:    " + fullName )
 							}
 						}
 						if count > 3 { break }	// Limit number of deletes (expect 3 per day).
