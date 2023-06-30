@@ -45,7 +45,7 @@ Code adding the axis names works, but it places the Y-axis name above the axis l
 As noted, Infinitive runs under Systemd. Added redirection of output and error logs to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
 The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. One day blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis names are needed as well. So it goes.
 
-The big problems remaining is building the web user interface assets in order to make UI changes. Not much progress there. Working out bindata and bindata_assetfs differences and how to build the changes and not break everything. Planning on adding a link from the Infinitive control display to the charts once the bindata issue is understood and a modified UI is completed.
+The big problem remaining is building the web user interface assets in order to make UI changes. Not much progress there, but it is now the top issue to be worked. Looking at differences between bindata and bindata_assetfs and how to build the changes and not break everything (as I've managed so far). Plan is to add a link from the Infinitive control display to the table of charts. Then, maybe, place the current chart in the display.
 
 To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd, see the second link at top. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
@@ -60,11 +60,15 @@ The busy little Pi 4 at work:
 Using USB-RS485
 ![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
 
-Using TTL-RS485
+Using TTL-RS485 (no longer in use)
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Changed to show the number of restarts, the one restart was a software update.
-![2023-06-07_Chart](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/988c611f-15f8-4f63-83ff-301a5c5c855a)
 
-Latest version, a current day chart at 16:00. My AC is amazingly powerful. When running, it actually changes the outdoor temperature! I ought to shade the condensor from the sun.
+Latest chart version, a current day chart at 16:00. Chart is updated at 06:00, 08:00, 10:00, 12:00 14:00, 16:00 18:00, 20:00, and lastly at midnight.
+My AC is amazingly powerful. When running, it actually changes the outdoor temperature!
+I ought to shade the condenser from the sun.
+
 ![2023-06-29_Chart 16 00](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/67a08d8c-0ceb-4fc5-a4c9-231a57aa7945)
+
+Earlier chart version. The one restart was a software update.
+![2023-06-07_Chart](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/988c611f-15f8-4f63-83ff-301a5c5c855a)
