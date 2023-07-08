@@ -19,7 +19,7 @@ The original disclaimer still applies. Maybe more so. (copied from the Infinitiv
 ## Getting started
 
 #### Hardware setup
-As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4 and my development on a Pi 400. The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. A Pi Zero would probably do fine, except it has no USB ports (continue reading).
+As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4 and my development on a Pi 400. The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. All early work was done under Linux 10 (Buster). A Pi Zero would probably do fine, except it has no USB ports (continue reading).
 
 Wiring to the Carrier HVAC employs solid core multi-conductor wire as intended for the purpose, per the referenced GitHub project. In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
 
@@ -29,13 +29,13 @@ Found two alternatives while shopping for the RS-485 interface, TTL and USB. The
 
 Initially used the RS-485 to TTL adapter wired directly to the serial pins on the GPIO bus which worked as soon as the wires to the HVAC were connected in January 2023. Immediately found the restart issue in the serial driver. The restarts are frequent and found to occur between minutes to after many hours of operation. The code was adapted to these frequent restarts. Much later switched to the USB interface and found it to be stable over days and have observed no decribed driver lockup incidents. While it would have permitted a simpler code design, the path taken was educational.
 
-Below is the RS-485 to TTL installation:
+Below is the RS-485 to TTL installation while running Buster:
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Here is the currently employed and trouble fee RS-485 to USB installation:
+Here is the currently employed and trouble fee RS-485 to USB installation (used with both Buster and later Bullseye):
 ![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
 
-There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Adding a header to the GPIO bus and using the TTL interface avoids the need for a micro-USB to USB-A adapter. The work around for the restarts in collecting data and systemd supports the TTL interface well. Recently (2023-07-08), investigated a Zero WH with TTL adapter under Bullseye. A serial interface sourced restart occurred within the first hour. So it goes, a photo of the test assembly below:
+There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Adding a header to the GPIO bus and using the TTL interface avoids the need for a micro-USB to USB-A adapter. The work around for the restarts in collecting data and systemd supports the TTL interface well. Recently (2023-07-08), investigated a Pi Zero WH with TTL adapter under Bullseye to see if the OS update fixed the serial port issue. The serial ttyS0 interface caused a restart within the first hour. So it goes. Below is a photo of the test setup:
 ![66EED6B9-CF5F-4934-AA55-1D588219E0A5_1_105_c](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/49ce5bc9-0c30-41df-8311-b8b5a3c7527f)
 
 Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option unless you want to use a Pi Zero W (with header).
