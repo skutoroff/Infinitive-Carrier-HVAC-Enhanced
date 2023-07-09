@@ -63,7 +63,7 @@ The big problem remaining is building the web user interface assets in order to 
 To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd, see the second link at top. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
 #### Problems Encountered.
-As noted above, the TTL interface is far less stable than the USB interface. Most early development problems would have been avoided had I never tried the TTL interface. I also would have learned less Go. Planning to test TTL RS-485 with Infinitive on a Pi Zero WH, just to see it work.
+As noted above, the TTL interface is far less stable than the USB interface. Most early development problems would have been avoided had I never tried the TTL interface. I also would have learned less Go. Understanding how to build the UI with the Go HTML server, bindata, bindata_assets, and binbata_assetsfs is still a hurdle. Need to spend some time on that.
 
 #### Other Nonsense
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
