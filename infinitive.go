@@ -373,9 +373,13 @@ func main() {
 	cronJob2 := cron.New(cron.WithSeconds())
 	cronJob2.AddFunc( "2 59 5,7,9,11,13,15,17,19,23 * * *", func() {
 		log.Error("Infinitive cron 2 Begins.")
+		intervalsRun	:= 0
+		intervalsOn		:= 0
+		restarts		:= 0
 		dt = time.Now()
-		// Close, rename, open new Infinitive.csv
+		// Close, then open new dated Infinitive.csv
 		err = fileHvacHistory.Close()
+		err = os.Chmod( dailyFileName, 0664 )		// beware file permissions! Or you get 0644.
 		if err != nil {
 			log.Error("infinitive cron 2 Error closing: " + dailyFileName)
 		}
@@ -389,7 +393,6 @@ func main() {
 		items2 := make( []opts.LineData, 0 )		// Outdoor Temperature
 		items3 := make( []opts.LineData, 0 )		// Blower RPM
 		index = 0
-		restarts := 0
 		filescan := bufio.NewScanner( fileHvacHistory )
 		for filescan.Scan() {
 			text = filescan.Text()
@@ -406,12 +409,18 @@ func main() {
 				items1 = append( items1, opts.LineData{ Value: inTmp[index]  } )
 				items2 = append( items2, opts.LineData{ Value: outTmp[index] } )
 				items3 = append( items3, opts.LineData{ Value: motRPM[index] } )
+				// Collect the % active data
+				if motRPM[index] > 0 {
+					intervalsOn++
+				}
+				intervalsRun++
 				index++
 			} else {
 				restarts++
 			}
 		}
 		lastData := index-1
+		index--
 		// If not end of day run, extend time X-axis to expected length.
 		if dt.Hour() != 23 {
 			base := dayf[index-1] + 0.002777	// bias to match day end time
@@ -421,11 +430,11 @@ func main() {
 				index++
 			}
 		}
-		index--
 		fileHvacHistory.Close()
 		log.Error("Infinitive cron 2 Preparing chart: " + dailyFileName)
 		// echarts referenece: https://github.com/go-echarts/go-echarts
-		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, Vsn: %s", dailyFileName, restarts-1, Version )
+		pcntOn := 100.0 * float32(intervalsOn) / float32(intervalsRun)
+		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, On: %6.1f percent, Vsn: %s", dailyFileName, restarts-1, pcntOn, Version )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
@@ -471,7 +480,7 @@ func main() {
 	// Note: Tried variations of shell exec for this, none worked.
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 2 0 * * *", func () {
-		// Limitations as code elaborated: assumes file order is old 2 new.
+		// Code assumes file order is old 2 new. It has been.
 		log.Error("Infinitive cron 3 Begin purge old files.")
 		count := 0
 		nowDayYear := time.Now().YearDay()
