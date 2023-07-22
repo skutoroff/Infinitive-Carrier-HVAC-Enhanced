@@ -50,9 +50,9 @@ As for the time axis in the charts, have not yet figured out how to set up text 
 
 Code adding the axis names works, but it places the Y-axis name above the axis line which puts it under/over the chart subtitle. The X-axis name is just to the right of the axis line. Have not found suitable example code to mimic that both builds and places the axis names in middle of the X-axis and vertical for the Y-axis, etc. Examples found to date are very basic, more educational rather than complete (IMHO). Originally, the daily chart was only produced just before midnight. Current version produces partial charts during the day at 06:00, 08:00, 10:00, 12:00 14:00, 16:00 18:00, 20:00, and lastly at midnight.
 
-Below is one from the 16:00 run.
+Below is one from the 16:00 run (updated 2023-07-22 added unit duty cyce % to subtitle).
 * My AC is amazingly powerful. When running, it actually changes the outdoor temperature! I ought to shade the condenser from the sun.
-![2023-06-30_Chart 16 00](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/095fdbda-5bc9-455d-aae1-a91383120b4e)
+![Screenshot 2023-07-22 at 16 34 21](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/66250395-feb6-4bdc-abef-b003b03f1bfa)
 
 As noted, Infinitive runs under systemd. Added redirection of output and error logs to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
 The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. One day blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis name placement needs to be improved. So it goes...
