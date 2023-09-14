@@ -58,7 +58,7 @@ var infinity *InfinityProtocol
 var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
 var	logPath			= "/var/log/infinitive/"
-var ChartFileSuffix	= "_Chart.html"
+var ChartFileSuffix	= "_Infinitive.html"
 
 
 // aded: Global defs to support periodic write to file
@@ -454,11 +454,11 @@ func main() {
 		// -- In Progress -- Need axis name placement fixed. Y-axis name buried under subtitle, X-axis name to right.
 		Line.SetGlobalOptions(
 			charts.WithXAxisOpts( opts.XAxis{ AxisLabel: &opts.AxisLabel{Rotate: 45, ShowMinLabel: true, ShowMaxLabel: true, Interval: "0" }, }, ),
-			charts.WithXAxisOpts( opts.XAxis{ Name: "Time YearDay.frac", }, ),	//Type: "time",  }, ),						<<-- Results in diagonal plot
-			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp & Blower", }, ), 		//Type: "value", position: "right", }, ),	<<<--wrong.
+			charts.WithXAxisOpts( opts.XAxis{ Name: "Time YearDay.frac",  }, ),				//Type: "time",  }, ),	<<-- Results in diagonal plot
+			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp & Blower", Type: "value", }, ), 	//position: "right", }, ),	<<<--wrong.
 		)
 		// Render and save the html file...
-		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d_Chart.html", filePath, dt.Year(), dt.Month(), dt.Day() )
+		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d"+ChartFileSuffix, filePath, dt.Year(), dt.Month(), dt.Day() )
 		// Chart it all
 		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
@@ -498,7 +498,7 @@ func main() {
 					fFile, err := os.Stat( fullName )
 					if err == nil {
 						dayofYear := fFile.ModTime().YearDay()
-						if nowDayYear - dayofYear > 28 {
+						if nowDayYear - dayofYear > 29 {
 							count++
 							if os.Remove( fullName ) != nil {
 								log.Error( "Infinitive cron 3 Error removing:  " + fullName )
