@@ -50,6 +50,8 @@ As for the time axis in the charts, have not yet figured out how to set up text 
 
 Code adding the axis names works, but it places the Y-axis name above the axis line which puts it under/over the chart subtitle. The X-axis name is just to the right of the axis line. Have not found suitable example code to mimic that both builds and places the axis names in middle of the X-axis and vertical for the Y-axis, etc. Examples found to date are very basic, more educational rather than complete (IMHO). Originally, the daily chart was only produced just before midnight. Current version produces partial charts during the day at 06:00, 08:00, 10:00, 12:00 14:00, 16:00 18:00, 20:00, and lastly at midnight.
 
+Minor changes 2023-09-14. Changed chart file name from yyyy-mm-dd_Chart.html to yyyy-mm-dd_Infinitive.html as the filename extension is all that is needed to distinguish them. Addtional minor code change to charting, but it has impact on appearance. Change made for completeness as investigation in axis label placement continues, slowly.
+
 Below is one from the 16:00 run (updated 2023-07-22 added unit duty cyce % to subtitle).
 * My AC is amazingly powerful. When running, it actually changes the outdoor temperature! I ought to shade the condenser from the sun.
 ![Screenshot 2023-07-22 at 16 34 21](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/66250395-feb6-4bdc-abef-b003b03f1bfa)
