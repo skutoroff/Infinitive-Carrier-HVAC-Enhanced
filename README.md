@@ -47,7 +47,7 @@ On 2023-11-27 an update to Raspbian Bullseye broke Infinitive. Data continues to
 I had a backup of the system using the accessory "SD Card Copier" done sometime around 2023-11-17 and by restoring current Infinitive data files and my current application build, I was back up in minutes. Backups save the day.
 
 Running "sudo apt update" and "sudo apt list --upgradable" gives the following suspects list:
-    firmware-atheros/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
+```    firmware-atheros/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
     firmware-brcm80211/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
     firmware-libertas/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
     firmware-misc-nonfree/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
@@ -56,7 +56,7 @@ Running "sudo apt update" and "sudo apt list --upgradable" gives the following s
     homebridge/unknown 1.1.4 armhf [upgradable from: 1.1.3]
     libgstreamer-plugins-bad1.0-0/oldstable 1.18.4-3+deb11u3 armhf [upgradable from: 1.18.4-3+deb11u2]
     libjavascriptcoregtk-4.0-18/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]
-    libwebkit2gtk-4.0-37/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]
+    libwebkit2gtk-4.0-37/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]```
 Of course, I did not do the upgrade after this! The homebridge update has tested innocent.
 
 I do updates often and suspect what ever was updated between 2023-11-25 and 2023-11-27 is the culprit. YMMV. I will no longer do Bullseye updates. I kind of suspect webkit.
@@ -91,3 +91,7 @@ As noted above, the TTL interface is far less stable than the USB interface. Mos
 #### Other Nonsense
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
 
+#### Updates In Progress
+1. No longer delete aged out file. [done]
+2. Working to organize files in subfolders by month. [rough]
+3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete]
