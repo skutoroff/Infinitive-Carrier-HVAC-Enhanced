@@ -56,8 +56,10 @@ Running "sudo apt update" and "sudo apt list --upgradable" gives the following s
     homebridge/unknown 1.1.4 armhf [upgradable from: 1.1.3]
     libgstreamer-plugins-bad1.0-0/oldstable 1.18.4-3+deb11u3 armhf [upgradable from: 1.18.4-3+deb11u2]
     libjavascriptcoregtk-4.0-18/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]
-    libwebkit2gtk-4.0-37/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]```
-Of course, I did not do the upgrade after this! The homebridge update has tested innocent.
+    libwebkit2gtk-4.0-37/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]
+```
+Of course, I did not do the upgrade after this!
+Oddly, my Pi 400 used for go development does still run Infinitive, but has a different set of upgradable files, some overlap.
 
 I do updates often and suspect what ever was updated between 2023-11-25 and 2023-11-27 is the culprit. YMMV. I will no longer do Bullseye updates. I kind of suspect webkit.
 
