@@ -95,3 +95,4 @@ With no formal Go experience, I like Go better than many other programming langu
 1. No longer delete aged out file. [done]
 2. Working to organize files in subfolders by month. [rough]
 3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete]
+![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7a76c6fa-254f-41de-b211-5e609b6eff21)
