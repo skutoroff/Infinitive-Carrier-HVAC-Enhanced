@@ -40,29 +40,6 @@ There is one use-case for the TTL interface. Infinitive should run quite well on
 
 Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option unless you want to use a Pi Zero W (with header).
 
-#### Raspbian Bullseye Update Warning
-
-On 2023-11-27 an update to Raspbian Bullseye broke Infinitive. Data continues to be collected from the HVAC, the Enhanced Infinitive data file collection continues, and daily charting continues; however, the Infinitive HMI stops working. All you get is the text "Here's our div..." from source file assets/index.html.
-
-I had a backup of the system using the accessory "SD Card Copier" done sometime around 2023-11-17 and by restoring current Infinitive data files and my current application build, I was back up in minutes. Backups save the day.
-
-Running "sudo apt update" and "sudo apt list --upgradable" gives the following suspects list:
-```    firmware-atheros/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
-    firmware-brcm80211/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
-    firmware-libertas/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
-    firmware-misc-nonfree/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
-    firmware-realtek/oldstable 1:20230210-5~bpo11+1+rpt2 all [upgradable from: 1:20230210-5~bpo11+1+rpt1]
-    gstreamer1.0-plugins-bad/oldstable 1.18.4-3+deb11u3 armhf [upgradable from: 1.18.4-3+deb11u2]
-    homebridge/unknown 1.1.4 armhf [upgradable from: 1.1.3]
-    libgstreamer-plugins-bad1.0-0/oldstable 1.18.4-3+deb11u3 armhf [upgradable from: 1.18.4-3+deb11u2]
-    libjavascriptcoregtk-4.0-18/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]
-    libwebkit2gtk-4.0-37/oldstable 2.42.2-1~deb11u1+rpi1 armhf [upgradable from: 2.42.1-1~deb11u2+rpi1]
-```
-Of course, I did not do the upgrade after this!
-Oddly, my Pi 400 used for go development does still run Infinitive, but has a different set of upgradable files, some overlap.
-
-I do updates often and suspect what ever was updated between 2023-11-25 and 2023-11-27 is the culprit. YMMV. I will no longer do Bullseye updates. I kind of suspect webkit.
-
 #### Software
 
 Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The planned enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 minute intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting was pretty simple. Lots is left to learn about the e-chart project. Another timer purges daily data and chart files older than 28 days. Another timer clears the log files 2x per month.
@@ -96,5 +73,5 @@ With no formal Go experience, I like Go better than many other programming langu
 #### Updates In Progress
 1. No longer delete aged out file. [done]
 2. Working to organize files in subfolders by month. [rough]
-3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete]
+3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete, see sample]
 ![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7a76c6fa-254f-41de-b211-5e609b6eff21)
