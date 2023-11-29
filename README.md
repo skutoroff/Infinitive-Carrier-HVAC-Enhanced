@@ -71,7 +71,8 @@ As noted above, the TTL interface is far less stable than the USB interface. Mos
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
 
 #### Updates In Progress
-1. No longer delete aged out file. [done]
-2. Working to organize files in subfolders by month. [rough]
-3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete, see sample]
+1. No longer delete aged out files. [done]
+2. Organize files in subfolders by year-month. [working]
+3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete, see sample below]
+
 ![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7a76c6fa-254f-41de-b211-5e609b6eff21)
