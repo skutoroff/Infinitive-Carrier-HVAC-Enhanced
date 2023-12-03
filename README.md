@@ -60,7 +60,7 @@ As noted, Infinitive runs under systemd. Added redirection of output and error l
 The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. One day blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis name placement needs to be improved. So it goes...
 
 The big problem remaining is building the web user interface assets in order to make UI changes. Not much progress there, but it is now the top issue to be worked. Looking at differences between bindata and bindata_assetfs and how to build the changes and not break everything (as I've managed to 2023-07-08). Plan is to add a link from the Infinitive control display to the table of charts. Then, maybe, place the current chart in the display. The table to be incorporated into the HMI is shown below:
-![htmlLinks 2023-06-30 16 00](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/e723df64-932d-40c4-9a94-8dcb935813a1)
+![Saved Measurements Table](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4ce59f0f-33d4-426d-be79-b8e8b0e4ddcb)
 
 To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd, see the second link at top. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
@@ -71,8 +71,10 @@ As noted above, the TTL interface is far less stable than the USB interface. Mos
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
 
 #### Updates In Progress
-1. No longer delete aged out files. [done]
-2. Organize files in subfolders by year-month. [working]
-3. Extracting the "%On:" values from the HTML files and charting annual HVAC activity.[works, incomplete, see sample below]
+1. No longer delete aged out daily files. [done]
+2. Organize files in subfolders by year-month. [done]
+3. Updated code producing the table of recent files. [done]
+4. Extracting the "%On:" values from the HTML files and charting annual HVAC activity. [done]
+5. Annual HVAC chart code needs updates to support data collection to multiple years. [in process]
 
 ![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7a76c6fa-254f-41de-b211-5e609b6eff21)
