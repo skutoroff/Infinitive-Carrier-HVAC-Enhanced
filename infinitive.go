@@ -17,9 +17,11 @@ import (
 	"strconv"
 	"bufio"
 	"github.com/robfig/cron/v3"
+	"path/filepath"
+	"strings"
+	"math"
 	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
@@ -57,6 +59,7 @@ var infinity *InfinityProtocol
 // Strings used throughout, may be changed using -ldflags on build if needed
 var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
+var	monthDir		= ""
 var	logPath			= "/var/log/infinitive/"
 var ChartFileSuffix	= "_Infinitive.html"
 
@@ -74,10 +77,9 @@ var	hvacMode		string
 var outTemp			int
 var	inTemp			int
 var	fanRPM			int
-var	index			int
 var	htmlChartTable	string
 var	fileName		string
-
+var	todaysDays		int
 
 // Original Infinitive code with minor changes...
 func getConfig() (*TStatZoneConfig, bool) {
@@ -210,8 +212,27 @@ func attachSnoops() {
 
 }
 
+// yearDaysFromFilePath uses file modified date ttribute
+func yearDaysFromFilePath( filename string ) int {
+	file, err := os.Stat( filename )
+	if (err != nil ) {
+		log.Error( "yearDaysFromFilePath os.Stat error on file: " + filename + " ", err )
+		return 0
+	}
+	modifiedTime := file.ModTime()
+	return modifiedTime.YearDay()
+}	// yearDaysFromFilePath
+
+// return TRUE if the filename is older than today - 2nd argument.
+func fileIsTooOld( filename string, limit int ) bool {
+	diff	:= todaysDays - yearDaysFromFilePath( filename )
+	return diff > limit
+}	// fileIsTooOld
+
 // Find HTML files and prepare 3 column link table; bool argument controls table only or full html page.
 func makeTableHTMLfiles( tableOnly bool ) {
+	var files []string
+
 	// Identify the html files, produce table of links, table only or full html page.
 	htmlLinks, err := os.OpenFile(filePath+"htmlLinks.html", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
@@ -225,14 +246,34 @@ func makeTableHTMLfiles( tableOnly bool ) {
 		htmlLinks.WriteString( "<style>\n td {\n  text-align: center;\n  }\n table, th, td {\n  border: 1px solid;\n  border-spacing: 5px;\n  border-collapse: collapse;\n }\n</style>\n</head>\n" )
 		htmlLinks.WriteString( "<body>\n<h2>HVAC Saved Measurements " + timeStr + "</h2>\n" )
 	}
-	htmlLinks.WriteString( "<table width=\"500\">\n" )
-	files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
-	if err != nil {
-		log.Error("infinitive.makeTableHTMLfiles - Dirctory Read Error.")
+	htmlLinks.WriteString( "<table width=\"1000\">\n" )
+	err = filepath.Walk( filePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Error("infinitive.makeTableHTMLfiles - filepath.Walk error 1." )
+			return nil
+		}
+		// First, only processs html files.
+		if !info.IsDir() && filepath.Ext(path) == ".html" {
+			// Only add files newer than the criteria for being to old and the Year_yyyy-mmm.html files
+			base := filepath.Base( path )
+			if base[0:0] == "Y" {				// The few monthy Year charts are listed without considering age.
+				files = append(files, path)
+			} else {							// The daily chart files
+				if !fileIsTooOld(path,40) {
+					files = append(files, path)
+				}
+			}
+		}
+		return nil
+	}	) 	// end filepath.Walk()
+    if err != nil {
+		log.Error("infinitive.makeTableHTMLfiles - filepath.Walk error 2." )
+		return
 	} else {
-		index = 0
+		// Process the filepath list.
+		index := 0
 		for _, file := range files {
-			fileName := file.Name()
+			fileName := file		// still merging code
 			length := len(fileName)
 			// Only process temperature html files...
 			if fileName[length-1] == 'l' && fileName[0]!='h' {
@@ -241,7 +282,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 					htmlLinks.WriteString( "  <tr>\n" )
 				}
 				// Only show the date part of the filename.
-				htmlLinks.WriteString( "    <td><a href=\"" + filePath + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + fileName[0:10] + "</a></td>\n" )
+				htmlLinks.WriteString( "    <td><a href=\"" + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + filepath.Base(fileName) + "</a></td>\n" )
 				if index % 3 == 2 {
 					htmlLinks.WriteString( " </tr>\n" )
 				}
@@ -258,27 +299,139 @@ func makeTableHTMLfiles( tableOnly bool ) {
 	}
 	htmlLinks.Close()
 	return
-}
+}	// makeTableHTMLfiles
+
+// Two functions added produce html chart of HVAC blower %on history from saved daily html files
+//		Find the percent on value searching for "On: ". Code from https://zetcode.com/golang/find-file/
+func doOneDailyFile( file string ) int {
+	f, err := os.Open(file)
+	if err != nil {
+		return	-1		// should not happen
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	line := 1
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "On: ") {
+			index := strings.Index( scanner.Text(), "On: " )
+			if index != -1 {
+				pcntOn, err := strconv.ParseFloat( strings.Trim( scanner.Text()[index+3:index+10], " " ), 32 )
+				if err != nil {
+					log.Error("Infinitive cron 4 doOneDailyFile conversion error, at line: " + strconv.Itoa(line) )
+				}
+				return int( math.Round(pcntOn*10)/10 )		// found it, done with current file (it is always line 19)
+				break
+			}
+		}	// line has "On: "
+		line++
+	}	// file scanner
+	log.Error("doOneDailyFile - unexpected exit - no On: string, line#: ", line )
+	return -1		// Should never get here!
+}	// doOneDailyFile
+
+// Function finds html files and extracts the percent on time with the date
+func extractPercentFromHTMLfiles( folder string ) {
+	var files []string
+	var	records	int
+	var data[366] int
+
+	records = 0
+	dayyr := make( [] int,	366 )
+	dayof := make( []opts.LineData, 0)
+
+	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Error("infinitive.extractPercentFromHTMLfiles - filepath.Walk error 1." )
+			return nil
+		}
+		if !info.IsDir() && filepath.Ext(path) == ".html" {
+			files = append(files, path)
+		}
+		return nil
+	}	) 	// filepath.Walk()
+    if err != nil {
+		log.Error("infinitive.extractPercentFromHTMLfiles - filepath.Walk error 2." )
+		return
+	} else {
+		for i := 0; i<366; i++ {
+			dayyr[i]	= i
+			data[i]		= 0
+		}	// clear and initialze data arrays
+		// log.Error("Infinitive cron 4 extractPercentFromHTMLfile - files in: " + folder )
+		for _, file := range files {
+			length := len( file )
+			date   := file[length-26:length-16]
+			t, err := time.Parse("2006-01-02", date )
+			if err != nil {
+				// These are just non-data files and can be ignored.
+				log.Error("infinitive.extractPercentFromHTMLfiles time.Parse() failed. " +  file )
+			}
+			yrday  := t.YearDay() 
+			if file[length-1] == 'l' {		// Only process the html files
+				data[yrday] = doOneDailyFile( file )
+			}
+			records++
+		}	// all files
+		log.Error("infinitive.extractPercentFromHTMLfiles - Records found: "+  strconv.Itoa(records) )
+		for i := 0; i<366; i++ {
+			dayof = append( dayof, opts.LineData{ Value: data[i]  } )
+		}	// transfer percent to LineData
+		dt := time.Now()
+		text := fmt.Sprintf( "Years HVAC Active Pcnt Vsn: %s, #Found = %d, Date: %04d-%02d-%02d", Version, records, dt.Year(), dt.Month(), dt.Day() )
+		Line := charts.NewLine()
+		Line.SetGlobalOptions(
+			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
+			charts.WithTitleOpts(opts.Title{
+				Title:    "Infinitive HVAC Year",
+				Subtitle: text,
+			}, ),
+		)
+		// Chart the percent on dayof against dayyr
+		Line.SetXAxis( dayyr[0:365] )
+		Line.AddSeries("Percent On",  dayof[0:365])
+		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
+		Line.SetGlobalOptions(
+			charts.WithXAxisOpts( opts.XAxis{ AxisLabel: &opts.AxisLabel{Rotate: 45, ShowMinLabel: true, ShowMaxLabel: true, Interval: "0" }, }, ),
+			charts.WithXAxisOpts( opts.XAxis{ Name: "Time Year Day",  }, ),
+			charts.WithYAxisOpts( opts.YAxis{ Name: "Prcnt On", Type: "value", }, ),
+		)
+		// Render and save the html file...
+		fileStr := fmt.Sprintf( "Year_%04d-%02d.html", dt.Year(), dt.Month() )
+		// Chart it
+		fHTML, err := os.OpenFile( filePath + fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
+		if err == nil {
+			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
+			log.Error("infinitive.extractPercentFromHTMLfiles - Render to html:  " + fileStr )
+			Line.Render(io.MultiWriter(fHTML))
+		} else {
+			log.Error("infinitive.extractPercentFromHTMLfiles - Error writing html file: " + fileStr )
+		}
+		// This works in test app GraphInf, but not here. Cause unknown.
+		fHTML.Close()
+		err = os.Chmod( fileStr, 0664 )		// as set in OpeFile, still got 0644
+	}
+}	//extractPercentFromHTMLfiles
 
 // The HVAC data file is opened and closed in different modes at multiple places.
 func OpenDailyFile( timeIs time.Time, fileFlags int, needHeader bool ) (DailyFile *os.File, fileNameIs string) {
 	var err error
 
-	fileNameIs = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath, timeIs.Year(), timeIs.Month(), timeIs.Day(), "Infinitive.csv")
+	fileNameIs = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath + monthDir, timeIs.Year(), timeIs.Month(), timeIs.Day(), "Infinitive.csv")
 	log.Error( "infinitive.OpenDailyFile, Daily:   " + fileNameIs )
 	DailyFile, err = os.OpenFile(fileNameIs, fileFlags, 0664 )
 	if err != nil {
-		log.Error( "Infinitive OpenDailyFile Create File Failure." )
+		log.Error( "infinitive.OpenDailyFile Create File Failure." )
 	}
 	if needHeader {
 		DailyFile.WriteString( "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp,blowerRPM\n" )
 	}
 	return
-}
+}	// OpenDailyFile
 
 func main() {
 	var dailyFileName, text	string
 	var f64					float64
+	var	index				int
 
 	httpPort := flag.Int("httpport", 8080, "HTTP port to listen on")
 	serialPort := flag.String("serial", "", "path to serial port")
@@ -314,6 +467,8 @@ func main() {
 
 	//	Save the data in a date prefix name file
 	dt := time.Now()
+	todaysDays	= dt.YearDay()
+	monthDir	= fmt.Sprintf( "%04d-%02d/", dt.Year(), dt.Month() )
 	fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
 	log.Error("Infinitive Start/Restart.")
 
@@ -322,7 +477,7 @@ func main() {
 	//		https://github.com/robfig/cron
 	// cron Job 1 - collect data to file every 4 minutes, fix funky values, and start new file at top of the day.
 	// cron Job 2 - produce chart and html table before midnight and 2 hours apart from 06:00 to 22:00
-	// cron Job 3 - delete csv and html files after 28 days.
+	// cron Job 3 - update the Daily html table file and the Year %on time chart.
 	// cron job 4 - delete log files 2x per month.
 
 	// Set up cron 1 - 4 minute data collection, fix data, cycle file at top of new day.
@@ -333,7 +488,7 @@ func main() {
 		if dt.Hour()==0 && dt.Minute()==0 {
 			err = fileHvacHistory.Close()
 			if err != nil {
-				log.Error("infinitive cron 2 Error closing daily:  " + dailyFileName)
+				log.Error("infinitive cron 1 Error closing daily:  " + dailyFileName)
 			}
 			// Open new file with new date
 			fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
@@ -434,7 +589,7 @@ func main() {
 		log.Error("Infinitive cron 2 Preparing chart: " + dailyFileName)
 		// echarts referenece: https://github.com/go-echarts/go-echarts
 		pcntOn := 100.0 * float32(intervalsOn) / float32(intervalsRun)
-		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, On: %6.1f percent, Vsn: %s", dailyFileName, restarts-1, pcntOn, Version )
+		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, On: %6.1f percent, Vsn: %s %s", dailyFileName, restarts-1, pcntOn, Version, hvacMode )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
@@ -458,7 +613,7 @@ func main() {
 			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp & Blower", Type: "value", }, ), 	//position: "right", }, ),	<<<--wrong.
 		)
 		// Render and save the html file...
-		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d"+ChartFileSuffix, filePath, dt.Year(), dt.Month(), dt.Day() )
+		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d"+ChartFileSuffix, filePath + monthDir, dt.Year(), dt.Month(), dt.Day() )
 		// Chart it all
 		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
@@ -469,59 +624,33 @@ func main() {
 			log.Error("Infinitive cron 2 Error html file: " + fileStr )
 		}
 		fHTML.Close()
-		err = os.Chmod( fileStr, 0664 )		// as set in OpeFile, still got 0644
+		err = os.Chmod( fileStr, 0664 )		// as set in OpenFile, still got 0644
 		// Re-open the HVAV history file to write more data, hence append.
 		fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, false )
 		makeTableHTMLfiles( false )
 	} )
 	cronJob2.Start()
 
-	// Set up cron 3 to purge old daily csv & html files
-	// Note: Tried variations of shell exec for this, none worked.
+	// Set up cron 3 to update the Daily html table file and the Year %on time chart.
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 2 0 * * *", func () {
-		// Code assumes file order is old 2 new. It has been.
-		log.Error("Infinitive cron 3 Begin purge old files.")
-		count := 0
-		nowDayYear := time.Now().YearDay()
-		files, err := ioutil.ReadDir( filePath[0:len(filePath)-1] )  // does not want trailing /
-		if err != nil {
-			log.Error( "Infinitive cron 3 Directory read error: " + filePath )
-			log.Error(err)
-		} else {
-			for _, file := range files {
-				fileName := file.Name()
-				length := len(fileName)
-				fullName := filePath + fileName
-				// Process csv & html files...
-				if fileName[0]=='2' && (fileName[length-1] == 'v' || fileName[length-1] == 'l') {
-					fFile, err := os.Stat( fullName )
-					if err == nil {
-						dayofYear := fFile.ModTime().YearDay()
-						if nowDayYear - dayofYear > 29 {
-							count++
-							if os.Remove( fullName ) != nil {
-								log.Error( "Infinitive cron 3 Error removing:  " + fullName )
-							} else {
-								log.Error( "Infinitive cron 3 Removed file:    " + fullName )
-							}
-						}
-						if count > 3 { break }	// Limit number of deletes (expect 3 per day).
-					} else {
-						log.Error( "Infinitive cron 3, can't os.Stat: " + fullName )
-					}	// os.Stat issue
-				} // fileName is match
-			}  // for...
-		}
+		todaysDays	= dt.YearDay()			// Update days into year count
+		// Update the html table file with ~30 days of daily charts and the years chart.
+		log.Error("Infinitive cron 3 Prepare the html table of daily charts.")
 		makeTableHTMLfiles( false )
+		// Produce Yearly chart daily, destination file will change monthly.
+		// Find "On; " in html files to chart extract blower percent on time.
+		log.Error("Infinitive cron 3 Prepare chart of Years blower percent on time frrom HTML files.")
+		extractPercentFromHTMLfiles( filePath )
 	} )
 	cronJob3.Start()
 
-	// Set up cron 4 to delete log files 1st and 16th of the month
+	// Set up cron 4, Run 1st and 16th of the month to delete log files and exit.
 	cronJob4 := cron.New(cron.WithSeconds())
 	cronJob4.AddFunc( "4 0 1 1,16 * *", func () {
 		log.Error("Infinitive cron 4 Begin log file cycling.")
 		// remove log files least they grow unbounded, using shell commands for this was futile.
+
 		logName := logPath + "infinitiveError.log"
 		log.Error("infinitive cron 4 Removing Error log file:  " + logName )
 		if os.Remove( logName ) != nil {
@@ -532,7 +661,18 @@ func main() {
 		if os.Remove( logName ) != nil {
 			log.Error("infinitive cron 4 Removing Output log FAIL: " + logName )
 		}
-		// Log files are not re-opened after this purge. Force an exit and let Systmd sort it out.
+		// On the 1st day of month, create a month folder
+		dt = time.Now()
+		if dt.Day() == 1 {
+			monthDir = fmt.Sprintf( "%04d-%02d/", dt.Year(), dt.Month() )
+			text := filePath + monthDir
+			if err := os.Mkdir( text, os.ModePerm ); err == nil {
+				log.Error("infinitive cron 4 Create New Month folder created: " + text )
+			} else {
+				log.Error("infinitive cron 4 Create New Month folder FAILED:  " + text )
+			}
+		}
+		// Log files are not re-opened after this purge. Force an exit and let Systemd sort it out.
 		log.Error("Infinitive cron 4 Program Forced Exit after log file purge.")
 		os.Exit(1)		// Required so new log files are opened.
 	} )
