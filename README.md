@@ -77,7 +77,7 @@ With no formal Go experience, I like Go better than many other programming langu
 4. Extracting the "%On:" values from the HTML files and charting annual HVAC activity. [done]
 5. Annual HVAC chart code needs updates to support data collection to multiple years. [done - test pending]
 
-![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7a76c6fa-254f-41de-b211-5e609b6eff21)
+![2023-12-24 Year_2023-121](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/bb037429-c708-49dc-a50f-cd958e10c501)
 
 #### Newest News!
 Observed recent major updates posted to the original https://github.com/acd/infinitive project.
