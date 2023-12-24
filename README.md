@@ -75,6 +75,16 @@ With no formal Go experience, I like Go better than many other programming langu
 2. Organize files in subfolders by year-month. [done]
 3. Updated code producing the table of recent files. [done]
 4. Extracting the "%On:" values from the HTML files and charting annual HVAC activity. [done]
-5. Annual HVAC chart code needs updates to support data collection to multiple years. [in process]
+5. Annual HVAC chart code needs updates to support data collection to multiple years. [done - test pending]
 
 ![image](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7a76c6fa-254f-41de-b211-5e609b6eff21)
+
+#### Newest News!
+Observed recent major updates posted to the original https://github.com/acd/infinitive project.
+First attempt to build failed, subsequently updated to go 1.21.5 and the build was successful. Integration of above changes in progress and the new code base is expected to resolve my issues with building changes to the user interface assets. Thanks ACD!
+
+One puzzle that is still an issue is building under 64bit Bookworm on a Pi5. The build fails with:
+
+* gcc: error: unrecognized command-line option '-marm'
+
+Work continues on the trusty Bullseye Pi 4.
