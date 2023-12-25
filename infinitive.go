@@ -1,18 +1,18 @@
 package main
-
 	// Ref: https://github.com/acd/infinitive
-	// Ref: https://github.com/elazarl/go-bindata-assetfs
-	// Installed to build assets
-	//		go get github.com/go-bindata/go-bindata/...
-	//		go get github.com/elazarl/go-bindata-assetfs/...
-	// Help Ref: https://github.com/inconshreveable/ngrok/issues/181
-
+	//		The inspiration, it was updated late 2023 to eliminate bindata issues
+	// Ref: https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced
+	//		This development to add data record retention and charting.
+	
 import (
-	"bytes"
-	"encoding/binary"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/acd/infinitive/infinity"
+	log "github.com/sirupsen/logrus"
+	// Added
 	"time"
 	"strconv"
 	"bufio"
@@ -20,198 +20,41 @@ import (
 	"path/filepath"
 	"strings"
 	"math"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
-	// Below needed for alternative to using bindata_assetfs which cannot be found!
-	// "github.com/elazarl/go-bindata-assetfs"
 )
 
-type TStatZoneConfig struct {
-	CurrentTemp     uint8  `json:"currentTemp"`
-	CurrentHumidity uint8  `json:"currentHumidity"`
-	OutdoorTemp     uint8  `json:"outdoorTemp"`
-	Mode            string `json:"mode"`
-	Stage           uint8  `json:"stage"`
-	FanMode         string `json:"fanMode"`
-	Hold            *bool  `json:"hold"`
-	HeatSetpoint    uint8  `json:"heatSetpoint"`
-	CoolSetpoint    uint8  `json:"coolSetpoint"`
-	RawMode         uint8  `json:"rawMode"`
-}
 
-type AirHandler struct {
-	BlowerRPM  uint16 `json:"blowerRPM"`
-	AirFlowCFM uint16 `json:"airFlowCFM"`
-	ElecHeat   bool   `json:"elecHeat"`
-}
-
-type HeatPump struct {
-	CoilTemp    float32 `json:"coilTemp"`
-	OutsideTemp float32 `json:"outsideTemp"`
-	Stage       uint8   `json:"stage"`
-}
-
-var infinity *InfinityProtocol
-
-// Strings used throughout, may be changed using -ldflags on build if needed
+// Added: Strings used throughout, Version may be changed using -ldflags on build
 var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
 var	monthDir		= ""
 var	logPath			= "/var/log/infinitive/"
-var ChartFileSuffix	= "_Infinitive.html"
+var	linksFile		= "dayLinks.html"
+var chartFileSuffix	= "_Infinitive.html"
 
+// Added: api.go external objects, i.e. infinity.BlowerRPM
+//		BlowerRPM       uint16
+//		HeatSet			uint8
+//		CoolSet			uint8
+//		CurrentTemp     uint8
+//		OutdoorTemp     int8
+//		HvacMode		string
 
-// aded: Global defs to support periodic write to file
+// Added: package defs to support periodic write to file
 var fileHvacHistory *os.File
-var blowerRPM       uint16
-var	currentTemp     uint8
-var	currentTempPrev	uint8 = 0		// Save of previous value for spike removeal.
-var	outdoorTemp     uint8
-var	outdoorTempPrev	uint8 = 0		// Save of previous value for spike removeal.
-var	heatSet			uint8
-var	coolSet			uint8
-var	hvacMode		string
+var	currentTempPrev	uint8 = 0		// Save of previous value for spike removal
+var	outdoorTempPrev	int8  = 0		// Save of previous value for spike removal
 var outTemp			int
 var	inTemp			int
-var	fanRPM			int
 var	htmlChartTable	string
 var	fileName		string
 var	todaysDays		int
+var	todaysYear		int
 
-// Original Infinitive code with minor changes...
-func getConfig() (*TStatZoneConfig, bool) {
-	cfg := TStatZoneParams{}
-	ok := infinity.ReadTable(devTSTAT, &cfg)
-	if !ok {
-		return nil, false
-	}
-
-	params := TStatCurrentParams{}
-	ok = infinity.ReadTable(devTSTAT, &params)
-	if !ok {
-		return nil, false
-	}
-
-	hold := new(bool)
-	*hold = cfg.ZoneHold&0x01 == 1
-
-	// Save for periodic cron1 to pick
-	currentTemp	= params.Z1CurrentTemp
-	inTemp		= int(currentTemp)
-	outdoorTemp	= params.OutdoorAirTemp
-	outTemp		= int(outdoorTemp)
-	heatSet		= cfg.Z1HeatSetpoint
-	coolSet		= cfg.Z1CoolSetpoint
-	hvacMode	= rawModeToString(params.Mode & 0xf)
-
-	return &TStatZoneConfig{
-		CurrentTemp:     params.Z1CurrentTemp,
-		CurrentHumidity: params.Z1CurrentHumidity,
-		OutdoorTemp:     params.OutdoorAirTemp,
-		Mode:            rawModeToString(params.Mode & 0xf),
-		Stage:           params.Mode >> 5,
-		FanMode:         rawFanModeToString(cfg.Z1FanMode),
-		Hold:            hold,
-		HeatSetpoint:    cfg.Z1HeatSetpoint,
-		CoolSetpoint:    cfg.Z1CoolSetpoint,
-		RawMode:         params.Mode,
-	}, true
-}
-
-func getTstatSettings() (*TStatSettings, bool) {
-	tss := TStatSettings{}
-	ok := infinity.ReadTable(devTSTAT, &tss)
-	if !ok {
-		return nil, false
-	}
-
-	return &TStatSettings{
-		BacklightSetting: tss.BacklightSetting,
-		AutoMode:         tss.AutoMode,
-		DeadBand:         tss.DeadBand,
-		CyclesPerHour:    tss.CyclesPerHour,
-		SchedulePeriods:  tss.SchedulePeriods,
-		ProgramsEnabled:  tss.ProgramsEnabled,
-		TempUnits:        tss.TempUnits,
-		DealerName:       tss.DealerName,
-		DealerPhone:      tss.DealerPhone,
-	}, true
-}
-
-func getAirHandler() (AirHandler, bool) {
-	b := cache.get("blower")
-	tb, ok := b.(*AirHandler)
-	if !ok {
-		return AirHandler{}, false
-	}
-	return *tb, true
-}
-
-func getHeatPump() (HeatPump, bool) {
-	h := cache.get("heatpump")
-	th, ok := h.(*HeatPump)
-	if !ok {
-		return HeatPump{}, false
-	}
-	return *th, true
-}
-
-func statePoller() {
-	for {
-		c, ok := getConfig()
-		if ok {
-			cache.update("tstat", c)
-		}
-
-		time.Sleep(time.Second * 1)
-	}
-}
-
-func attachSnoops() {
-	// Snoop Heat Pump responses
-	infinity.snoopResponse(0x5000, 0x51ff, func(frame *InfinityFrame) {
-		data := frame.data[3:]
-		heatPump, ok := getHeatPump()
-		if ok {
-			if bytes.Equal(frame.data[0:3], []byte{0x00, 0x3e, 0x01}) {
-				heatPump.CoilTemp = float32(binary.BigEndian.Uint16(data[2:4])) / float32(16)
-				heatPump.OutsideTemp = float32(binary.BigEndian.Uint16(data[0:2])) / float32(16)
-				log.Debugf("heat pump coil temp is: %f", heatPump.CoilTemp)
-				log.Debugf("heat pump outside temp is: %f", heatPump.OutsideTemp)
-				cache.update("heatpump", &heatPump)
-			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x3e, 0x02}) {
-				heatPump.Stage = data[0] >> 1
-				log.Debugf("HP stage is: %d", heatPump.Stage)
-				cache.update("heatpump", &heatPump)
-			}
-		}
-	})
-
-	// Snoop Air Handler responses
-	infinity.snoopResponse(0x4000, 0x42ff, func(frame *InfinityFrame) {
-		data := frame.data[3:]
-		airHandler, ok := getAirHandler()
-		if ok {
-			if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x06}) {
-				airHandler.BlowerRPM = binary.BigEndian.Uint16(data[1:5])
-				log.Debugf("blower RPM is: %d", airHandler.BlowerRPM)
-				cache.update("blower", &airHandler)
-				blowerRPM = airHandler.BlowerRPM		// added
-				fanRPM = int(blowerRPM)					// added
-			} else if bytes.Equal(frame.data[0:3], []byte{0x00, 0x03, 0x16}) {
-				airHandler.AirFlowCFM = binary.BigEndian.Uint16(data[4:8])
-				airHandler.ElecHeat = data[0]&0x03 != 0
-				log.Debugf("air flow CFM is: %d", airHandler.AirFlowCFM)
-				cache.update("blower", &airHandler)
-			}
-		}
-	})
-
-}
-
+// Added,: Support functions
 // yearDaysFromFilePath uses file modified date ttribute
 func yearDaysFromFilePath( filename string ) int {
 	file, err := os.Stat( filename )
@@ -234,9 +77,9 @@ func makeTableHTMLfiles( tableOnly bool ) {
 	var files []string
 
 	// Identify the html files, produce table of links, table only or full html page.
-	htmlLinks, err := os.OpenFile(filePath+"htmlLinks.html", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	htmlLinks, err := os.OpenFile(filePath + linksFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-			log.Error("infinitive.makeTableHTMLfiles - htmlLinks.html Create Failure.")
+			log.Error("makeTableHTMLfiles - htmlLinks.html Create Failure.")
 	}
 	if !tableOnly {
 		timeStr := time.Now().Format("2006-01-02 15:04:05")
@@ -246,10 +89,10 @@ func makeTableHTMLfiles( tableOnly bool ) {
 		htmlLinks.WriteString( "<style>\n td {\n  text-align: center;\n  }\n table, th, td {\n  border: 1px solid;\n  border-spacing: 5px;\n  border-collapse: collapse;\n }\n</style>\n</head>\n" )
 		htmlLinks.WriteString( "<body>\n<h2>HVAC Saved Measurements " + timeStr + "</h2>\n" )
 	}
-	htmlLinks.WriteString( "<table width=\"1000\">\n" )
+	htmlLinks.WriteString( "<table width=\"800\">\n" )
 	err = filepath.Walk( filePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error("infinitive.makeTableHTMLfiles - filepath.Walk error 1." )
+			log.Error("makeTableHTMLfiles - filepath.Walk error 1." )
 			return nil
 		}
 		// First, only processs html files.
@@ -267,7 +110,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 		return nil
 	}	) 	// end filepath.Walk()
     if err != nil {
-		log.Error("infinitive.makeTableHTMLfiles - filepath.Walk error 2." )
+		log.Error("makeTableHTMLfiles - filepath.Walk error 2." )
 		return
 	} else {
 		// Process the filepath list.
@@ -301,7 +144,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 	return
 }	// makeTableHTMLfiles
 
-// Two functions added produce html chart of HVAC blower %on history from saved daily html files
+// Two functions added produce html chart of HVAC blower %On history from saved daily html files
 //		Find the percent on value searching for "On: ". Code from https://zetcode.com/golang/find-file/
 func doOneDailyFile( file string ) int {
 	f, err := os.Open(file)
@@ -317,7 +160,7 @@ func doOneDailyFile( file string ) int {
 			if index != -1 {
 				pcntOn, err := strconv.ParseFloat( strings.Trim( scanner.Text()[index+3:index+10], " " ), 32 )
 				if err != nil {
-					log.Error("Infinitive cron 4 doOneDailyFile conversion error, at line: " + strconv.Itoa(line) )
+					log.Error("doOneDailyFile conversion error on " + file + ", error: ", err )
 				}
 				return int( math.Round(pcntOn*10)/10 )		// found it, done with current file (it is always line 19)
 				break
@@ -325,8 +168,8 @@ func doOneDailyFile( file string ) int {
 		}	// line has "On: "
 		line++
 	}	// file scanner
-	log.Error("doOneDailyFile - unexpected exit - no On: string, line#: ", line )
-	return -1		// Should never get here!
+	log.Error("doOneDailyFile -no On: value in:" + filepath.Base(file) + ", end line#:", line )
+	return -1
 }	// doOneDailyFile
 
 // Function finds html files and extracts the percent on time with the date
@@ -334,6 +177,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 	var files []string
 	var	records	int
 	var data[366] int
+	var	gapStart int = -1
 
 	records = 0
 	dayyr := make( [] int,	366 )
@@ -341,7 +185,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 
 	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error("infinitive.extractPercentFromHTMLfiles - filepath.Walk error 1." )
+			log.Error("extractPercentFromHTMLfiles - filepath.Walk error 1." )
 			return nil
 		}
 		if !info.IsDir() && filepath.Ext(path) == ".html" {
@@ -350,29 +194,46 @@ func extractPercentFromHTMLfiles( folder string ) {
 		return nil
 	}	) 	// filepath.Walk()
     if err != nil {
-		log.Error("infinitive.extractPercentFromHTMLfiles - filepath.Walk error 2." )
+		log.Error("extractPercentFromHTMLfiles - filepath.Walk error 2." )
 		return
 	} else {
-		for i := 0; i<366; i++ {
+		for i := 0; i<366; i++ {									// initialze data array to sawtooth
 			dayyr[i]	= i
-			data[i]		= 0
-		}	// clear and initialze data arrays
-		// log.Error("Infinitive cron 4 extractPercentFromHTMLfile - files in: " + folder )
+			data[i]		= i%2										// Sawtooth missing data
+		}
+		// log.Error("extractPercentFromHTMLfile - files in: " + folder )
 		for _, file := range files {
 			length := len( file )
 			date   := file[length-26:length-16]
-			t, err := time.Parse("2006-01-02", date )
+			t, err := time.Parse("2006-01-02", date )				//TODO: get date from file!
 			if err != nil {
 				// These are just non-data files and can be ignored.
-				log.Error("infinitive.extractPercentFromHTMLfiles time.Parse() failed. " +  file )
+				log.Error("extractPercentFromHTMLfiles time.Parse() failed. " +  filepath.Base(file) )
 			}
-			yrday  := t.YearDay() 
-			if file[length-1] == 'l' {		// Only process the html files
-				data[yrday] = doOneDailyFile( file )
+			yrday  := t.YearDay()
+			if file[length-1] == 'l' && todaysYear==t.Year() {		// Only process the html files for current year (prep for multiple years)
+				data[yrday] = doOneDailyFile( file )				// The current year is processed last by Walk.
+				records++
+				gapStart = yrday									// gapStart != -1 will mean gap fill starts at gapStart+1
+			} else {
+				if todaysYear == t.Year()+1 {						// For the previous year, process is same as current year, data will  be oerwriten
+					data[yrday] = doOneDailyFile( file )			// The current year is processed last by Walk.
+					records++
+				} else {
+					if todaysYear > t.Year()+1 {					// Older files can be ignored
+						continue									// do nothing
+					}
+				}
 			}
-			records++
 		}	// all files
-		log.Error("infinitive.extractPercentFromHTMLfiles - Records found: "+  strconv.Itoa(records) )
+		//	Fill or Overwrite gap between current and prior year. Current is processed last
+		if gapStart != -1 && gapStart<350 {
+			log.Error("extractPercentFromHTMLfiles - Multi-year fill: ", gapStart )
+			for i := gapStart+1; i<gapStart+16;i++ {
+				data[i]	= i%2										// Sawtooth the gap
+			}
+		}
+		log.Error("extractPercentFromHTMLfiles - Records found: "+  strconv.Itoa(records) )
 		for i := 0; i<366; i++ {
 			dayof = append( dayof, opts.LineData{ Value: data[i]  } )
 		}	// transfer percent to LineData
@@ -401,10 +262,10 @@ func extractPercentFromHTMLfiles( folder string ) {
 		fHTML, err := os.OpenFile( filePath + fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
-			log.Error("infinitive.extractPercentFromHTMLfiles - Render to html:  " + fileStr )
+			log.Error("extractPercentFromHTMLfiles - Render to html:  " + fileStr )
 			Line.Render(io.MultiWriter(fHTML))
 		} else {
-			log.Error("infinitive.extractPercentFromHTMLfiles - Error writing html file: " + fileStr )
+			log.Error("extractPercentFromHTMLfiles - Error writing html file: " + fileStr )
 		}
 		// This works in test app GraphInf, but not here. Cause unknown.
 		fHTML.Close()
@@ -413,51 +274,48 @@ func extractPercentFromHTMLfiles( folder string ) {
 }	//extractPercentFromHTMLfiles
 
 // The HVAC data file is opened and closed in different modes at multiple places.
-func OpenDailyFile( timeIs time.Time, fileFlags int, needHeader bool ) (DailyFile *os.File, fileNameIs string) {
+func openDailyFile( timeIs time.Time, fileFlags int, needHeader bool ) (DailyFile *os.File, fileNameIs string) {
 	var err error
 
 	fileNameIs = fmt.Sprintf( "%s%4d-%02d-%02d_%s", filePath + monthDir, timeIs.Year(), timeIs.Month(), timeIs.Day(), "Infinitive.csv")
-	log.Error( "infinitive.OpenDailyFile, Daily:   " + fileNameIs )
+	log.Error( "openDailyFile, Daily:              " + filepath.Base(fileNameIs) )
 	DailyFile, err = os.OpenFile(fileNameIs, fileFlags, 0664 )
 	if err != nil {
-		log.Error( "infinitive.OpenDailyFile Create File Failure." )
+		log.Error( "openDailyFile Create File Failure." )
 	}
 	if needHeader {
-		DailyFile.WriteString( "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp,blowerRPM\n" )
+		DailyFile.WriteString( "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp, BlowerRPM\n" )
 	}
 	return
-}	// OpenDailyFile
+}	// openDailyFile
 
+// Resume ACD
 func main() {
+	// Added
 	var dailyFileName, text	string
 	var f64					float64
 	var	index				int
 
+	// ACD
 	httpPort := flag.Int("httpport", 8080, "HTTP port to listen on")
 	serialPort := flag.String("serial", "", "path to serial port")
 
 	flag.Parse()
 
 	if len(*serialPort) == 0 {
-		log.Info("must provide serial\n")
+		fmt.Print("must provide serial\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	log.SetLevel(log.ErrorLevel)		// was log.DebugLevel
+	log.SetLevel(log.ErrorLevel)		// Changed from DebugLevel
 
-	infinity = &InfinityProtocol{device: *serialPort}
-	airHandler := new(AirHandler)
-	heatPump   := new(HeatPump)
-	cache.update("blower", airHandler)
-	cache.update("heatpump", heatPump)
-	attachSnoops()
-	err := infinity.Open()
+	infinityApi, err := infinity.NewApi(context.Background(), *serialPort)
 	if err != nil {
 		log.Panicf("error opening serial port: %s", err.Error())
 	}
 
-	// added for data collection and charting
+	// Added for data collection and charting
 	dayf	:= make( [] float32, 2000 )
 	inTmp	:= make( [] int,	 2000 )
 	outTmp	:= make( [] int,	 2000 )
@@ -468,8 +326,9 @@ func main() {
 	//	Save the data in a date prefix name file
 	dt := time.Now()
 	todaysDays	= dt.YearDay()
+	todaysYear	= dt.Year()
 	monthDir	= fmt.Sprintf( "%04d-%02d/", dt.Year(), dt.Month() )
-	fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
+	fileHvacHistory, dailyFileName = openDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
 	log.Error("Infinitive Start/Restart.")
 
 	// References for periodic execution:
@@ -491,35 +350,35 @@ func main() {
 				log.Error("infinitive cron 1 Error closing daily:  " + dailyFileName)
 			}
 			// Open new file with new date
-			fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
+			fileHvacHistory, dailyFileName = openDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
 		}
 		// Consider decimal part calculation with year from 2023, 2023-01-01 is Julian 2459945.5
 		frcDay :=  float32(dt.YearDay()) + 4.16667*(float32(dt.Hour()) + float32(dt.Minute())/60.0)/100.0
 		// Fix the too frequent 0 or 1 spikes in raw data and range check.
-		if ( ( outdoorTemp==0 || outdoorTemp==1 ) && outdoorTempPrev>10 ) || outdoorTemp>130 {
-			outdoorTemp = outdoorTempPrev
+		if ( ( infinity.OutdoorTemp==0 || infinity.OutdoorTemp==1 ) && outdoorTempPrev>10 ) || infinity.OutdoorTemp>125 {
+			infinity.OutdoorTemp = outdoorTempPrev
 		} else {
-			outdoorTempPrev = outdoorTemp
+			outdoorTempPrev = infinity.OutdoorTemp
 		}
 		// indoor temp can also be damaged
-		if currentTemp<32 || currentTemp>115 {
-			currentTemp = currentTempPrev
+		if infinity.CurrentTemp<32 || infinity.CurrentTemp>115 {
+			infinity.CurrentTemp = currentTempPrev
 		} else {
-			currentTempPrev = currentTemp
+			currentTempPrev = infinity.CurrentTemp
 		}
 		// Set blower RPM as % where off(0), low(34), med(66), high(100), makes %rpm range match temp range
-		if blowerRPM < 200 {
-			blowerRPM = 0
-		} else if blowerRPM < 550 {
-			blowerRPM = 34
-		} else if blowerRPM < 750 {
-			blowerRPM = 66
+		if infinity.BlowerRPM < 200 {
+			infinity.BlowerRPM = 0
+		} else if infinity.BlowerRPM < 550 {
+			infinity.BlowerRPM = 34
+		} else if infinity.BlowerRPM < 750 {
+			infinity.BlowerRPM = 66
 		} else {
-			blowerRPM = 100
+			infinity.BlowerRPM = 100
 		}
-		// Future: fix hvacMode, it is sometimes "unknown", but we don't use it.
+		// Future: fix HvacMode, it is sometimes "unknown", but we don't use it.
 		outLine := fmt.Sprintf( "%s,%09.4f,%04d,%04d,%04d,%04d,%04d,%s\n", dt.Format("2006-01-02T15:04:05"),
-							frcDay, heatSet, coolSet, outdoorTemp, currentTemp, blowerRPM, hvacMode )
+							frcDay, infinity.HeatSet, infinity.CoolSet, infinity.OutdoorTemp, infinity.CurrentTemp, infinity.BlowerRPM, infinity.HvacMode )
 		fileHvacHistory.WriteString(outLine)
 	} )
 	cronJob1.Start()
@@ -586,10 +445,10 @@ func main() {
 			}
 		}
 		fileHvacHistory.Close()
-		log.Error("Infinitive cron 2 Preparing chart: " + dailyFileName)
+		log.Error("Infinitive cron 2 Preparing chart: " + filepath.Base(dailyFileName) )
 		// echarts referenece: https://github.com/go-echarts/go-echarts
 		pcntOn := 100.0 * float32(intervalsOn) / float32(intervalsRun)
-		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, On: %6.1f percent, Vsn: %s %s", dailyFileName, restarts-1, pcntOn, Version, hvacMode )
+		text = fmt.Sprintf("Indoor+Outdoor Temperatue w/Blower RPM from %s, #Restarts: %d, On: %6.1f percent, Vsn: %s %s", dailyFileName, restarts-1, pcntOn, Version, infinity.HvacMode )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
@@ -613,12 +472,12 @@ func main() {
 			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp & Blower", Type: "value", }, ), 	//position: "right", }, ),	<<<--wrong.
 		)
 		// Render and save the html file...
-		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d"+ChartFileSuffix, filePath + monthDir, dt.Year(), dt.Month(), dt.Day() )
+		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d"+chartFileSuffix, filePath + monthDir, dt.Year(), dt.Month(), dt.Day() )
 		// Chart it all
 		fHTML, err := os.OpenFile( fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
 			// Example Ref: https://github.com/go-echarts/examples/blob/master/examples/boxplot.go
-			log.Error("Infinitive cron 2 Render to html:  " + fileStr )
+			log.Error("Infinitive cron 2 Render to html:  " + filepath.Base(fileStr) )
 			Line.Render(io.MultiWriter(fHTML))
 		} else {
 			log.Error("Infinitive cron 2 Error html file: " + fileStr )
@@ -626,7 +485,7 @@ func main() {
 		fHTML.Close()
 		err = os.Chmod( fileStr, 0664 )		// as set in OpenFile, still got 0644
 		// Re-open the HVAV history file to write more data, hence append.
-		fileHvacHistory, dailyFileName = OpenDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, false )
+		fileHvacHistory, dailyFileName = openDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, false )
 		makeTableHTMLfiles( false )
 	} )
 	cronJob2.Start()
@@ -635,6 +494,7 @@ func main() {
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 2 0 * * *", func () {
 		todaysDays	= dt.YearDay()			// Update days into year count
+		todaysYear	= dt.Year()
 		// Update the html table file with ~30 days of daily charts and the years chart.
 		log.Error("Infinitive cron 3 Prepare the html table of daily charts.")
 		makeTableHTMLfiles( false )
@@ -678,10 +538,5 @@ func main() {
 	} )
 	cronJob4.Start()
 
-	// Code using: https://github.com/elazarl/go-bindata-assetfs
-	go statePoller()
-	webserver(*httpPort)
-	// Below said to be needed for alternative to bindata_assetfs, remains unsolved.
-	//http.Handle("/", http.FileServer(
-	//	&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "data"}))
+	launchWebserver(*httpPort, infinityApi)
 }
