@@ -19,7 +19,9 @@ The original disclaimer still applies. Maybe more so. (copied from the Infinitiv
 ## Getting started
 
 #### Hardware setup
-As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4 and my development on a Pi 400. The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. All early work was done under Linux 10 (Buster). A Pi Zero would probably do fine, except it has no USB ports (continue reading).
+As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4. A Pi Zero would probably do fine, except it has no USB ports (continue reading). The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. All early work was done under Linux 10 (Buster). No issues found moving to Bullseye. Moving to Bookworm on a Pi5 resulted in a failed build, suspect the change to GCC version. The build failed with:
+
+* gcc: error: unrecognized command-line option '-marm'
 
 Wiring to the Carrier HVAC employs solid core multi-conductor wire as intended for the purpose, per the referenced GitHub project. In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
 
@@ -32,7 +34,7 @@ Initially used the RS-485 to TTL adapter wired directly to the serial pins on th
 Below is the RS-485 to TTL installation while running Buster:
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Here is the currently employed and trouble fee RS-485 to USB installation (used with both Buster and later Bullseye):
+Here is the currently employed and trouble fee RS-485 to USB installation (used with both Buster and Bullseye):
 ![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
 
 There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Adding a header to the GPIO bus and using the TTL interface avoids the need for a micro-USB to USB-A adapter. The work around for the restarts in collecting data and systemd supports the TTL interface well. Recently (2023-07-08), investigated a Pi Zero WH with TTL adapter under Bullseye to see if the OS update fixed the serial port issue. The serial ttyS0 interface caused a restart within the first hour. So it goes. Below is a photo of the test setup:
@@ -42,7 +44,7 @@ Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't 
 
 #### Software
 
-Using go version 1.20.2 linux/arm. Had to fix some import statements in the source code and learn how to setup a Go environment (never saw or used Go before). The planned enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 minute intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting was pretty simple. Lots is left to learn about the e-chart project. Another timer purges daily data and chart files older than 28 days. Another timer clears the log files 2x per month.
+Started with go version 1.20.2 linux/arm, now using 1.21.5. The planned enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 minute intervals. Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting was pretty simple. Lots is left to learn about the e-chart project. Another timer purges daily data and chart files older than 28 days. Another timer clears the log files 2x per month.
 The error log file grew fast with the TTL interface; with the USB interface it contains only added error and progress messages. Still, log file purges are deemed useful.
 
 As for the time axis in the charts, have not yet figured out how to set up text format time in the scale. So, the daily data include a date.dayFraction representation of time for the time scale. Just wanted to see a chart more than I wanted to learn e-charts at the time. May later adapt to a more Julian date style. Below is an early version of the chart. The one restart was a software update.
@@ -50,7 +52,7 @@ As for the time axis in the charts, have not yet figured out how to set up text 
 
 Code adding the axis names works, but it places the Y-axis name above the axis line which puts it under/over the chart subtitle. The X-axis name is just to the right of the axis line. Have not found suitable example code to mimic that both builds and places the axis names in middle of the X-axis and vertical for the Y-axis, etc. Examples found to date are very basic, more educational rather than complete (IMHO). Originally, the daily chart was only produced just before midnight. Current version produces partial charts during the day at 06:00, 08:00, 10:00, 12:00 14:00, 16:00 18:00, 20:00, and lastly at midnight.
 
-Minor changes 2023-09-14. Changed chart file name from yyyy-mm-dd_Chart.html to yyyy-mm-dd_Infinitive.html as the filename extension is all that is needed to distinguish them. Addtional minor code change to charting, but it has impact on appearance. Change made for completeness as investigation in axis label placement continues, slowly.
+Minor changes 2023-09-14. Changed chart file name from yyyy-mm-dd_Chart.html to yyyy-mm-dd_Infinitive.html as the filename extension is all that is needed to distinguish them. Addtional minor code change to charting, but it has impact on appearance. Change made for completeness as investigation in axis label placement is paused.
 
 Below is one from the 16:00 run (updated 2023-07-22 added unit duty cyce % to subtitle).
 * My AC is amazingly powerful. When running, it actually changes the outdoor temperature! I ought to shade the condenser from the sun.
@@ -59,32 +61,16 @@ Below is one from the 16:00 run (updated 2023-07-22 added unit duty cyce % to su
 As noted, Infinitive runs under systemd. Added redirection of output and error logs to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
 The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. One day blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis name placement needs to be improved. So it goes...
 
-The big problem remaining is building the web user interface assets in order to make UI changes. Not much progress there, but it is now the top issue to be worked. Looking at differences between bindata and bindata_assetfs and how to build the changes and not break everything (as I've managed to 2023-07-08). Plan is to add a link from the Infinitive control display to the table of charts. Then, maybe, place the current chart in the display. The table to be incorporated into the HMI is shown below:
+The problem building the web user interface was resolved with recent (Deceber 2023) updates to the orignal Infinitive project. This work is ongoing.
 ![Saved Measurements Table](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4ce59f0f-33d4-426d-be79-b8e8b0e4ddcb)
 
 To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd, see the second link at top. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
-#### Problems Encountered.
-As noted above, the TTL interface is far less stable than the USB interface. Most early development problems would have been avoided had I never tried the TTL interface. I also would have learned less Go. Understanding how to build the UI with the Go HTML server, bindata, bindata_assets, and binbata_assetsfs is still a hurdle. Need to spend some time on that.
-
-#### Other Nonsense
+#### Minor Nonsense
 With no formal Go experience, I like Go better than many other programming languages I’ve used. I like that Go programs are a single complete executable with no additional support files. I like the sort of C like resemblance and the way objects are referenced. The object-method chaining is kind of neat, but hindered readability at first. Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
 
 #### Updates In Progress
-1. No longer delete aged out daily files. [done]
-2. Organize files in subfolders by year-month. [done]
-3. Updated code producing the table of recent files. [done]
-4. Extracting the "%On:" values from the HTML files and charting annual HVAC activity. [done]
-5. Annual HVAC chart code needs updates to support data collection to multiple years. [done - test pending]
+1. Revising code to handle multiple year collection.
+2. Revisng the UI is just now underway as the source project changed.
 
 ![2023-12-24 Year_2023-121](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/bb037429-c708-49dc-a50f-cd958e10c501)
-
-#### Newest News!
-Observed recent major updates posted to the original https://github.com/acd/infinitive project.
-First attempt to build failed, subsequently updated to go 1.21.5 and the build was successful. Integration of above changes in progress and the new code base is expected to resolve my issues with building changes to the user interface assets. Thanks ACD!
-
-One puzzle that is still an issue is building under 64bit Bookworm on a Pi5. The build fails with:
-
-* gcc: error: unrecognized command-line option '-marm'
-
-Work continues on the trusty Bullseye Pi 4.
