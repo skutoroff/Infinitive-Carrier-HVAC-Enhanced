@@ -45,8 +45,8 @@ var chartFileSuffix	= "_Infinitive.html"
 
 // Added: package defs to support periodic write to file
 var fileHvacHistory *os.File
-var	currentTempPrev	uint8 = 0		// Save of previous value for spike removal
-var	outdoorTempPrev	int8  = 0		// Save of previous value for spike removal
+var	currentTempPrev	uint8 = 0		// Save previous value for spike removal
+var	outdoorTempPrev	int8  = 0		// Save previous value for spike removal
 var outTemp			int
 var	inTemp			int
 var	htmlChartTable	string
@@ -69,27 +69,27 @@ func yearDaysFromFilePath( filename string ) int {
 // return TRUE if the filename is older than today - 2nd argument.
 func fileIsTooOld( filename string, limit int ) bool {
 	diff	:= todaysDays - yearDaysFromFilePath( filename )
-	return diff > limit
+	return diff > limit-1
 }	// fileIsTooOld
 
 // Find HTML files and prepare 3 column link table; bool argument controls table only or full html page.
-func makeTableHTMLfiles( tableOnly bool ) {
+func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int ) {
 	var files []string
 
 	// Identify the html files, produce table of links, table only or full html page.
-	htmlLinks, err := os.OpenFile(filePath + linksFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	htmlLinks, err := os.OpenFile( tableFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 			log.Error("makeTableHTMLfiles - htmlLinks.html Create Failure.")
 	}
+	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if !tableOnly {
-		timeStr := time.Now().Format("2006-01-02 15:04:05")
 		htmlLinks.WriteString( "<!-- infinitive.makeTableHTMLfiles(): " + timeStr + " -->\n" )
 		htmlLinks.WriteString( "<!DOCTYPE html>\n<html lang=\"en\">\n" )
 		htmlLinks.WriteString( "<head>\n<title>HVAC Saved Measurements " + timeStr + "</title>\n" )
 		htmlLinks.WriteString( "<style>\n td {\n  text-align: center;\n  }\n table, th, td {\n  border: 1px solid;\n  border-spacing: 5px;\n  border-collapse: collapse;\n }\n</style>\n</head>\n" )
 		htmlLinks.WriteString( "<body>\n<h2>HVAC Saved Measurements " + timeStr + "</h2>\n" )
 	}
-	htmlLinks.WriteString( "<table width=\"800\">\n" )
+	htmlLinks.WriteString( "<table width=\"720\">\n" )
 	err = filepath.Walk( filePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Error("makeTableHTMLfiles - filepath.Walk error 1." )
@@ -102,7 +102,7 @@ func makeTableHTMLfiles( tableOnly bool ) {
 			if base[0:0] == "Y" {				// The few monthy Year charts are listed without considering age.
 				files = append(files, path)
 			} else {							// The daily chart files
-				if !fileIsTooOld(path,40) {
+				if !fileIsTooOld(path,wayBackDays) {
 					files = append(files, path)
 				}
 			}
@@ -136,9 +136,9 @@ func makeTableHTMLfiles( tableOnly bool ) {
 			htmlLinks.WriteString( " </tr>\n" )
 		}
 	}
-	htmlLinks.WriteString( "</table>\n" )
 	if !tableOnly {
-		htmlLinks.WriteString( "</body>\n</html>\n\n" )
+		htmlLinks.WriteString( "</table>\n</body>\n" )
+		htmlLinks.WriteString( "</html>\n\n" )
 	}
 	htmlLinks.Close()
 	return
@@ -486,7 +486,7 @@ func main() {
 		err = os.Chmod( fileStr, 0664 )		// as set in OpenFile, still got 0644
 		// Re-open the HVAV history file to write more data, hence append.
 		fileHvacHistory, dailyFileName = openDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, false )
-		makeTableHTMLfiles( false )
+		makeTableHTMLfiles( false, filePath + linksFile, 24 )
 	} )
 	cronJob2.Start()
 
@@ -497,7 +497,7 @@ func main() {
 		todaysYear	= dt.Year()
 		// Update the html table file with ~30 days of daily charts and the years chart.
 		log.Error("Infinitive cron 3 Prepare the html table of daily charts.")
-		makeTableHTMLfiles( false )
+		makeTableHTMLfiles( false, filePath + linksFile, 24 )
 		// Produce Yearly chart daily, destination file will change monthly.
 		// Find "On; " in html files to chart extract blower percent on time.
 		log.Error("Infinitive cron 3 Prepare chart of Years blower percent on time frrom HTML files.")
