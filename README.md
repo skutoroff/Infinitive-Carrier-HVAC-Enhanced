@@ -54,14 +54,14 @@ Code adding the axis names works, but it places the Y-axis name above the axis l
 
 Minor changes 2023-09-14. Changed chart file name from yyyy-mm-dd_Chart.html to yyyy-mm-dd_Infinitive.html as the filename extension is all that is needed to distinguish them. Addtional minor code change to charting, but it has impact on appearance. Change made for completeness as investigation in axis label placement is paused.
 
-Below is one from the 16:00 run (updated 2023-07-22 added unit duty cyce % to subtitle).
+Below is one from the 16:00 run (updated 2023-07-22 added unit duty cycle % to subtitle).
 * My AC is amazingly powerful. When running, it actually changes the outdoor temperature! I ought to shade the condenser from the sun.
 ![Screenshot 2023-07-22 at 16 34 21](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/66250395-feb6-4bdc-abef-b003b03f1bfa)
 
 As noted, Infinitive runs under systemd. Added redirection of output and error logs to /var/log/infinitive/. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there. Data files are in CSV form allowing import into Excel.
 The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. One day blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis name placement needs to be improved. So it goes...
 
-The problem building the web user interface was resolved with recent (Deceber 2023) updates to the orignal Infinitive project. This work is ongoing.
+The problem building the web user interface was resolved with recent (December 2023) updates to the orignal Infinitive project. This work is ongoing.
 ![Saved Measurements Table](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4ce59f0f-33d4-426d-be79-b8e8b0e4ddcb)
 
 To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd, see the second link at top. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
@@ -71,6 +71,6 @@ With no formal Go experience, I like Go better than many other programming langu
 
 #### Updates In Progress
 1. Revising code to handle multiple year data collection and charting.
-2. Revisng the UI is just now underway as the source project changed. In progress.
+2. Revisng the UI is just now underway as the source project changed. Discovered some unexpected go limitations on what can be added to the existing user interface. Much learn here about dynamic html in go.
 
 ![2023-12-24 Year_2023-121](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/bb037429-c708-49dc-a50f-cd958e10c501)
