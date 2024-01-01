@@ -72,5 +72,6 @@ With no formal Go experience, I like Go better than many other programming langu
 #### Updates In Progress
 1. Revising code to handle multiple year data collection and charting.
 2. Revisng the UI is just now underway as the source project changed. Discovered some unexpected go limitations on what can be added to the existing user interface. Much learn here about dynamic html in go.
+3. Looking into a small file server go program so daily and yearly charts can be viewed from computer on local network. 
 
 ![2023-12-24 Year_2023-121](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/bb037429-c708-49dc-a50f-cd958e10c501)
