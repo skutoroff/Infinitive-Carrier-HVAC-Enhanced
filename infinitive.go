@@ -51,25 +51,24 @@ var outTemp			int
 var	inTemp			int
 var	htmlChartTable	string
 var	fileName		string
-var	todaysDays		int
+var	todaysDate		time.Time		// Used to get file age difference
 var	todaysYear		int
 
 // Added,: Support functions
-// yearDaysFromFilePath uses file modified date ttribute
-func yearDaysFromFilePath( filename string ) int {
+// timeFromFilePath uses file modified date ttribute
+func timeFromFilePath( filename string ) time.Time {
 	file, err := os.Stat( filename )
 	if (err != nil ) {
-		log.Error( "yearDaysFromFilePath os.Stat error on file: " + filename + " ", err )
-		return 0
+		log.Error( "timeFromFilePath os.Stat error on file: " + filename + " ", err )
+		return todaysDate
 	}
-	modifiedTime := file.ModTime()
-	return modifiedTime.YearDay()
-}	// yearDaysFromFilePath
+	return file.ModTime()
+}	// timeFromFilePath
 
 // return TRUE if the filename is older than today - 2nd argument.
 func fileIsTooOld( filename string, limit int ) bool {
-	diff	:= todaysDays - yearDaysFromFilePath( filename )
-	return diff > limit-1
+	diff	:= todaysDate.Sub(timeFromFilePath(filename)).Hours()/24	// Compute the difference in days from Hours
+	return int(diff+math.Copysign(0.5, diff)) > limit -1				// The conversion got a little messy
 }	// fileIsTooOld
 
 // Find HTML files and prepare 3 column link table; bool argument controls table only or full html page.
@@ -284,7 +283,7 @@ func openDailyFile( timeIs time.Time, fileFlags int, needHeader bool ) (DailyFil
 		log.Error( "openDailyFile Create File Failure." )
 	}
 	if needHeader {
-		DailyFile.WriteString( "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp, BlowerRPM\n" )
+		DailyFile.WriteString( "Date,Time,FracTime,Heat Set,Cool Set,Outdoor Temp,Current Temp,BlowerRPM\n" )
 	}
 	return
 }	// openDailyFile
@@ -325,7 +324,7 @@ func main() {
 
 	//	Save the data in a date prefix name file
 	dt := time.Now()
-	todaysDays	= dt.YearDay()
+	todaysDate	= dt
 	todaysYear	= dt.Year()
 	monthDir	= fmt.Sprintf( "%04d-%02d/", dt.Year(), dt.Month() )
 	fileHvacHistory, dailyFileName = openDailyFile( dt, os.O_APPEND|os.O_CREATE|os.O_WRONLY, true )
@@ -493,14 +492,14 @@ func main() {
 	// Set up cron 3 to update the Daily html table file and the Year %on time chart.
 	cronJob3 := cron.New(cron.WithSeconds())
 	cronJob3.AddFunc( "3 2 0 * * *", func () {
-		todaysDays	= dt.YearDay()			// Update days into year count
+		todaysDate	= dt				// save and update todays date
 		todaysYear	= dt.Year()
 		// Update the html table file with ~30 days of daily charts and the years chart.
 		log.Error("Infinitive cron 3 Prepare the html table of daily charts.")
 		makeTableHTMLfiles( false, filePath + linksFile, 24 )
 		// Produce Yearly chart daily, destination file will change monthly.
 		// Find "On; " in html files to chart extract blower percent on time.
-		log.Error("Infinitive cron 3 Prepare chart of Years blower percent on time frrom HTML files.")
+		log.Error("Infinitive cron 3 Prepare Year blower chart percent on time frrom HTML files.")
 		extractPercentFromHTMLfiles( filePath )
 	} )
 	cronJob3.Start()
@@ -538,5 +537,6 @@ func main() {
 	} )
 	cronJob4.Start()
 
+	log.Error("Infinitive - launchWeserver() for Infinitive HVAC control.")
 	launchWebserver(*httpPort, infinityApi)
 }
