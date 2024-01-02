@@ -32,7 +32,7 @@ var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
 var	monthDir		= ""
 var	logPath			= "/var/log/infinitive/"
-var	linksFile		= "dayLinks.html"
+var	linksFile		= "index.html"					// previously "dayLinks.html"
 var chartFileSuffix	= "_Infinitive.html"
 
 // Added: api.go external objects, i.e. infinity.BlowerRPM
@@ -123,8 +123,10 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 				if index % 3 == 0 {
 					htmlLinks.WriteString( "  <tr>\n" )
 				}
-				// Only show the date part of the filename.
-				htmlLinks.WriteString( "    <td><a href=\"" + fileName + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + filepath.Base(fileName) + "</a></td>\n" )
+				// For active links using staticServer, omit the leading part of the fileName path.
+				//		The index.html file will no longer work without staticServer running, but it will work anywhere on local network.
+				// For target, only show the date part of the filename.
+				htmlLinks.WriteString( "    <td><a href=\"" + fileName[8:] + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + filepath.Base(fileName) + "</a></td>\n" )
 				if index % 3 == 2 {
 					htmlLinks.WriteString( " </tr>\n" )
 				}

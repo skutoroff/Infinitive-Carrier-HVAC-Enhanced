@@ -1,0 +1,14 @@
+[Unit]
+Description=staticServer Service
+After=network.target
+StartLimitIntervalSec=0
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+StandardOutput=append:/var/log/staticServer/staticServerOutput.log
+StandardError=append:/var/log/staticServer/staticServerError.log
+ExecStart=/var/lib/staticServer/staticServer
+[Install]
+WantedBy=multi-user.target
