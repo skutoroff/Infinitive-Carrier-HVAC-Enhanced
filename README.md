@@ -21,7 +21,7 @@ The original disclaimer still applies. Maybe more so. (copied from the Infinitiv
 #### Hardware setup
 As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4. A Pi Zero would probably do fine, except it has no USB ports (continue reading). The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. All early work was done under Linux 10 (Buster). No issues found moving to Bullseye. Moving to Bookworm on a Pi5 resulted in a failed build, suspect the change to GCC version. The build failed with:
 
-* gcc: error: unrecognized command-line option '-marm'
+`gcc: error: unrecognized command-line option '-marm'`
 
 Wiring to the Carrier HVAC employs solid core multi-conductor wire as intended for the purpose, per the referenced GitHub project. In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
 
@@ -34,7 +34,7 @@ Initially used the RS-485 to TTL adapter wired directly to the serial pins on th
 Below is the RS-485 to TTL installation while running Buster:
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Here is the currently employed and trouble fee RS-485 to USB installation (used with both Buster and Bullseye):
+Below is the currently employed and trouble fee RS-485 to USB installation (used with both Buster and Bullseye):
 ![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
 
 There is one use-case for the TTL interface. Infinitive should run quite well on a Pi Zero W. Adding a header to the GPIO bus and using the TTL interface avoids the need for a micro-USB to USB-A adapter. The work around for the restarts in collecting data and systemd supports the TTL interface well. Recently (2023-07-08), investigated a Pi Zero WH with TTL adapter under Bullseye to see if the OS update fixed the serial port issue. The serial ttyS0 interface caused a restart within the first hour. So it goes. Below is a photo of the test setup:
@@ -48,29 +48,29 @@ Started with go version 1.20.2 linux/arm, now using 1.21.5. The planned enhancem
 Another timer clears the log files 2x per month.
 The error log file grew fast with the TTL interface; with the USB interface it contains only added error and progress messages. Still, log file purges are deemed useful. Lowered the log level anyway.
 
-As noted, Infinitive runs under systemd. Copy the .service files to /etc/systemd/system/. Then run "sudo systemctl enable infinitive.service" followed by "sudo systemctl start infinitive.service". Repeat for staticServer. Redirection of output and error logs to /var/log/infinitive/ is included in the .service files. Be sure to create the folders. Infinitive is run from /var/lib/infinitive/ with data and chart files also saved there with sub-folders for each month of collection. Data files are in CSV form allowing import into Excel.
+As noted, Infinitive runs under systemd. Copy the `.service` files to `/etc/systemd/system/`. Then run `sudo systemctl enable infinitive.service` followed by `sudo systemctl start infinitive.service`. Repeat for staticServer. Redirection of output and error logs to `/var/log/infinitive/` is included in the `.service` files. Be sure to create the folders. Infinitive is run from `/var/lib/infinitive/` with data and chart files also saved there with sub-folders for each month of collection. Data files are in CSV form allowing import into Excel.
 
 As for the time axis in the charts, have not yet figured out how to set up text format time in the scale. So, the daily data include a date.dayFraction representation of time for the time scale. Just wanted to see a chart more than I wanted to learn e-charts at the time. May later adapt to a more Julian date style. Below is an early version of the chart. The blower RPM scale is the reported fan speed converted to off-low-med-high scale as 0, 34, 66, 100 to use the same y scale as temperature. Temperature readings and blower RPM readings are sometimes corrupted in the RS-485 transmission, the code cleans up the obvious exteme errors. In the future, blower RPM will be shown with a right side scale. Changing the time scale to be text date/time is also intended. Axis name placement needs to be improved.  The one restart was a software update.
 ![2023-06-07_Chart](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/988c611f-15f8-4f63-83ff-301a5c5c855a)
 
 Code adding the axis names works, but it places the Y-axis name above the axis line which puts it under/over the chart subtitle. The X-axis name is just to the right of the axis line. Have not found suitable example code to mimic that both builds and places the axis names in middle of the X-axis and vertical for the Y-axis, etc. Examples found to date are very basic, more educational rather than complete (IMHO). Originally, the daily chart was only produced just before midnight. Current version produces partial charts during the day at 06:00, 08:00, 10:00, 12:00 14:00, 16:00 18:00, 20:00, and lastly at midnight.
 
-Minor changes 2023-09-14. Changed chart file name from yyyy-mm-dd_Chart.html to yyyy-mm-dd_Infinitive.html as the filename extension is all that is needed to distinguish the files. Added the blower percent on time to the subheading and later used this data for additonal historical charting over the year.
+Minor changes 2023-09-14. Changed chart file name from `yyyy-mm-dd_Chart.html` to `yyyy-mm-dd_Infinitive.html` as the filename extension is all that is needed to distinguish the files. Added the blower percent on time to the subheading and later used this data for additonal historical charting over the year.
 ![2024-01-02 One Day](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/3af765ac-c6ca-45ab-aa58-3e29ebb5889c)
 
 The blower % on time data is extracted to show change in HVAC operation over the year. I would like to distinguish heat from cold by changing the line color, maybe in the future.
 ![2024-01-02 Prior Month](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/f144fedd-a1c3-4e82-9bcd-58e1c2e50216)
 
-To use the executable Pi file, install it in /var/lib/infinitive/ and set it up in systemd. If you configure systemd to save output and error log files, save them in /var/log/infinitive/ as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
+To use the executable Pi file, install it in  `/var/lib/infinitive/` and set it up in systemd. If you configure systemd to save output and error log files, save them in `/var/log/infinitive/` as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
 #### Newest Updates January 2024
 
 Infinitive modifications now handle multiple year data collection and charting. There may still be bugs to be found as current year data progresses into the prior year on the chart. The code should enforce a 30 day separation berween new data from the left and existing prior year to the right. The gap will show as a sawtooth along the x-axis. Below is the first chart of 2024 showing 2024-01-01 on the left.
 ![2024-01-02 Overlap years](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/a18c0211-a3c9-4a55-845e-dd5149c8f8e5)
 
-Added a static file HTML server application from generally available education code. The HTML file with the links has been renamed to index.html. The links are now partial file name matches to work with the static server code. This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://192.168.1.220:8081/infinitive/index.html
+It was always planned to make the charts available through the UI. Recently, added a static file HTML server application from generally available education code. The HTML file with the links has been renamed to index.html. The links are now partial file name matches to work with the static server code. This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://192.168.1.220:8081/infinitive/index.html
 When I learn how, I'll merge staticServer into Infinitive, but they run concurrently. I'll look into it.
-The new release of original project source permits UI modifications as the dependence on bindata_assets is gone.
+The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone.
 
 #### Minor Nonsense
 
