@@ -24,6 +24,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"net/http"
 )
 
 
@@ -32,7 +33,7 @@ var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
 var	monthDir		= ""
 var	logPath			= "/var/log/infinitive/"
-var	linksFile		= "index.html"					// previously "dayLinks.html"
+var	linksFile		= "index.html"
 var chartFileSuffix	= "_Infinitive.html"
 
 // Added: api.go external objects, i.e. infinity.BlowerRPM
@@ -78,7 +79,7 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 	// Identify the html files, produce table of links, table only or full html page.
 	htmlLinks, err := os.OpenFile( tableFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-			log.Error("makeTableHTMLfiles - htmlLinks.html Create Failure.")
+			log.Error("makeTableHTMLfiles - htmlLinks.html create Failure.")
 	}
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if !tableOnly {
@@ -186,7 +187,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 
 	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Error("extractPercentFromHTMLfiles - filepath.Walk error 1." )
+			log.Error("extractPercentFromHTMLfiles - filepath.Walk() failed 1.", err )
 			return nil
 		}
 		if !info.IsDir() && filepath.Ext(path) == ".html" {
@@ -195,7 +196,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 		return nil
 	}	) 	// filepath.Walk()
     if err != nil {
-		log.Error("extractPercentFromHTMLfiles - filepath.Walk error 2." )
+		log.Error("extractPercentFromHTMLfiles - filepath.Walk failed at end", err )
 		return
 	} else {
 		for i := 0; i<366; i++ {									// initialze data array to sawtooth
@@ -539,6 +540,19 @@ func main() {
 	} )
 	cronJob4.Start()
 
-	log.Error("Infinitive - launchWeserver() for Infinitive HVAC control.")
+	// Start a static file server for the charts and continue to the infinitive UI
+	log.Error("Infinitive - start FileServer() for Infinitive HVAC charts.")
+	go func() {
+		// Simple static FileServer
+		fs := http.FileServer(http.Dir("/var/lib/infinitive"))				// no trailing / on direcvtory
+		http.Handle("/infinitive/", http.StripPrefix("/infinitive/", fs))	// Is this right?
+
+		err:= http.ListenAndServe(":8081", nil)								// localhost:8081/infinitive/index.html
+		if err != nil {
+			log.Error("infinitive - static file server ListenAndServe failed.", err)
+		}
+   	} ()
+
+	log.Error("Infinitive - launchWeserver()   for Infinitive HVAC control.")
 	launchWebserver(*httpPort, infinityApi)
 }
