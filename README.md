@@ -19,11 +19,9 @@ The original disclaimer still applies. Maybe more so. (copied from the Infinitiv
 ## Getting started
 
 #### Hardware setup
-As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4. A Pi Zero would probably do fine, except it has no USB ports (continue reading). The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. All early work was done under Linux 10 (Buster). No issues found moving to Bullseye. Updated this enhancement to source project updates (2023-12). They built easy after updating to Go 1.21.5. Tried moving to Bookworm on a Pi5 resulted in a failed build, suspect the change to GCC version. The build failed with:
+As with the project source developer, all my development is with various Raspberry Pi boards with Infinitive running on a Pi 4. A Pi Zero would probably do fine, except it has no USB ports (continue reading). The Pi 4 also runs PiHole and HomeBridge with CPU loads of just a few percent. All early work was done under Linux 10 (Buster). No issues found moving to Bullseye. Updated this enhancement to source project updates (2023-12). They built easy after updating to Go 1.21.5. Building under Bookworm on a Pi5 requires the ARM 64bit version `go1.21.5.linux-arm64.tar.gz`, not the 6l version used on the Pi 4.
 
-`gcc: error: unrecognized command-line option '-marm'`
-
-Back to the topic. Wiring to the Carrier HVAC employs solid core multi-conductor wire as intended for the purpose, per the referenced GitHub project. In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
+Wiring to the Carrier HVAC employs solid core multi-conductor wire as intended for the purpose, per the referenced GitHub project. In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
 
 Found two alternatives while shopping for the RS-485 interface, TTL and USB. The original Infinitive developer used USB and reported on a driver lockup issue and suggested using USB 1 mode. The HASS version author provided instructions for running Infinitive under systemd. systemd is highly recommended, it solves any restart issue with the app or the driver and cleanly manages startup under any condition. Two alterative interfaces identified and purchased were:
 * (eBay) TTL RS-485 interface:	dlymore TTL Serial Port to RS485 Converter Module, was less than $7.45 with shipping.
