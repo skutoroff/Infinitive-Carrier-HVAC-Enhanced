@@ -55,7 +55,8 @@ var	fileName		string
 var	todaysDate		time.Time		// Used to get file age difference
 var	todaysYear		int
 
-// Added,: Support functions
+// Added: Support functions
+
 // timeFromFilePath uses file modified date ttribute
 func timeFromFilePath( filename string ) time.Time {
 	file, err := os.Stat( filename )
@@ -66,7 +67,7 @@ func timeFromFilePath( filename string ) time.Time {
 	return file.ModTime()
 }	// timeFromFilePath
 
-// return TRUE if the filename is older than today - 2nd argument.
+// return TRUE if the filename is older than today by 2nd argument.
 func fileIsTooOld( filename string, limit int ) bool {
 	diff	:= todaysDate.Sub(timeFromFilePath(filename)).Hours()/24	// Compute the difference in days from Hours
 	return int(diff+math.Copysign(0.5, diff)) > limit -1				// The conversion got a little messy
@@ -146,12 +147,12 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 	return
 }	// makeTableHTMLfiles
 
-// Two functions added produce html chart of HVAC blower %On history from saved daily html files
+// Next two functions produce html chart of HVAC blower %On history from saved daily html files
 //		Find the percent on value searching for "On: ". Code from https://zetcode.com/golang/find-file/
 func doOneDailyFile( file string ) int {
 	f, err := os.Open(file)
 	if err != nil {
-		return	-1		// should not happen
+		return	-1		// Should not happen
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -174,7 +175,7 @@ func doOneDailyFile( file string ) int {
 	return -1
 }	// doOneDailyFile
 
-// Function finds html files and extracts the percent on time with the date
+// Find html files and extracts the percent on time with the date
 func extractPercentFromHTMLfiles( folder string ) {
 	var files []string
 	var	records	int
@@ -317,7 +318,7 @@ func main() {
 		log.Panicf("error opening serial port: %s", err.Error())
 	}
 
-	// Added for data collection and charting
+	// Added: data collection and charting
 	dayf	:= make( [] float32, 2000 )
 	inTmp	:= make( [] int,	 2000 )
 	outTmp	:= make( [] int,	 2000 )
@@ -540,19 +541,20 @@ func main() {
 	} )
 	cronJob4.Start()
 
-	// Start a static file server for the charts and continue to the infinitive UI
+	// Start static file server for the charts, asyncrhonous
 	log.Error("Infinitive - start FileServer() for Infinitive HVAC charts.")
 	go func() {
 		// Simple static FileServer
-		fs := http.FileServer(http.Dir("/var/lib/infinitive"))				// no trailing / on direcvtory
+		fs := http.FileServer(http.Dir(filePath[:len(filePath)-1]))			// Remove trailing directory "/"
 		http.Handle("/infinitive/", http.StripPrefix("/infinitive/", fs))	// Is this right?
-
 		err:= http.ListenAndServe(":8081", nil)								// localhost:8081/infinitive/index.html
 		if err != nil {
-			log.Error("infinitive - static file server ListenAndServe failed.", err)
+			log.Error("Infinitive - Static File Server failed: ListenAndServe. ", err)
 		}
    	} ()
 
+	// Start infinitive UI
 	log.Error("Infinitive - launchWeserver()   for Infinitive HVAC control.")
+	// ACD
 	launchWebserver(*httpPort, infinityApi)
 }
