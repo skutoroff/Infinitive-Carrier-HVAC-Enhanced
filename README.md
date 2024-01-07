@@ -43,6 +43,12 @@ Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't 
 #### Software
 
 Started with go version 1.20.2 linux/arm, now using 1.21.5.
+Doing builds on both a Pi4 Bullseye and a Pi5 Bookworm.
+Besides the installing the correct go toolset (above), a build on Bookworm does not run on Bullseye, get a file not found error, cause unknown.
+This can be fixed by cross-compiling as (there may be better ways to do this):
+
+`env GOOS=linux GOARCH=arm GOARM=6 go build -ldflags "-X main.Version=0.4.1.06"`
+
 The planned enhancements required periodic time based execution. Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification. It is used to collect temperature and fan readings at 4 minute intervals.
 Another cron timer saves daily data to files and then prepares a basic daily chart using [Go E-charts](https://github.com/go-echarts/go-echarts). First pass at charting was pretty simple. Lots is left to learn about the e-chart project.
 Another timer clears the log files 2x per month.
