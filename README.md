@@ -98,6 +98,7 @@ There may still be bugs to be found as current year data progresses into the pri
 The code should enforce a 15 day separation berween new data from the left and existing prior year to the right.
 The gap and missing data show as missing data (lost files or files before the %on was calculated), no chart data.
 Below is a chart showing the current year 2024 on the left and the prior year to the right.
+I'd like to show the heating and cooling line segments in different colors and also annotate the current and prior year areas, e-charts remains a mystery.
 ![Screenshot 2024-02-03 at 07 09 08](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7f0bdaaf-6ef7-43a6-a443-9d8c11ef1f15)
 
 It was always planned to make the charts available through the UI.
