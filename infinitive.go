@@ -202,13 +202,13 @@ func extractPercentFromHTMLfiles( folder string ) {
 	} else {
 		for i := 0; i<366; i++ {									// initialze data array to sawtooth
 			dayyr[i]	= i
-			data[i]		= i%2										// Sawtooth missing data
+			data[i]		= -1										// Flag missing data
 		}
 		// log.Error("extractPercentFromHTMLfile - files in: " + folder )
 		for _, file := range files {
 			length := len( file )
 			date   := file[length-26:length-16]
-			t, err := time.Parse("2006-01-02", date )				//TODO: get date from file!
+			t, err := time.Parse("2006-01-02", date )				//TODO: get date from file! file.ModTime()
 			if err != nil {
 				// These are just non-data files and can be ignored.
 				log.Error("extractPercentFromHTMLfiles time.Parse() failed. " +  filepath.Base(file) )
@@ -233,12 +233,16 @@ func extractPercentFromHTMLfiles( folder string ) {
 		if gapStart != -1 && gapStart<350 {
 			log.Error("extractPercentFromHTMLfiles - Multi-year fill: ", gapStart )
 			for i := gapStart+1; i<gapStart+16;i++ {
-				data[i]	= i%2										// Sawtooth the gap
+				data[i]	= -1										// Fill the gap
 			}
 		}
 		log.Error("extractPercentFromHTMLfiles - Records found: "+  strconv.Itoa(records) )
 		for i := 0; i<366; i++ {
-			dayof = append( dayof, opts.LineData{ Value: data[i]  } )
+			if data[i] != -1 {
+				dayof = append( dayof, opts.LineData{ Value: data[i]  } )
+			} else {
+				dayof = append( dayof, opts.LineData{ Value: nil  } )	// Overwrite line gap
+			}
 		}	// transfer percent to LineData
 		dt := time.Now()
 		text := fmt.Sprintf( "Years HVAC Active Pcnt Vsn: %s, #Found = %d, Date: %04d-%02d-%02d", Version, records, dt.Year(), dt.Month(), dt.Day() )
@@ -250,7 +254,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 				Subtitle: text,
 			}, ),
 		)
-		// Chart the percent on dayof against dayyr
+		// Chart the percent On dayof against dayyr
 		Line.SetXAxis( dayyr[0:365] )
 		Line.AddSeries("Percent On",  dayof[0:365])
 		Line.SetSeriesOptions(charts.WithMarkLineNameTypeItemOpts(opts.MarkLineNameTypeItem{Name: "Maximum", Type: "max"}))
@@ -258,6 +262,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 			charts.WithXAxisOpts( opts.XAxis{ AxisLabel: &opts.AxisLabel{Rotate: 45, ShowMinLabel: true, ShowMaxLabel: true, Interval: "0" }, }, ),
 			charts.WithXAxisOpts( opts.XAxis{ Name: "Time Year Day",  }, ),
 			charts.WithYAxisOpts( opts.YAxis{ Name: "Prcnt On", Type: "value", }, ),
+			charts.WithYAxisOpts( opts.YAxis{ Min: 0, Max: 100, }, ),			// apply uniform bounds
 		)
 		// Render and save the html file...
 		fileStr := fmt.Sprintf( "Year_%04d-%02d.html", dt.Year(), dt.Month() )
@@ -473,6 +478,7 @@ func main() {
 			charts.WithXAxisOpts( opts.XAxis{ AxisLabel: &opts.AxisLabel{Rotate: 45, ShowMinLabel: true, ShowMaxLabel: true, Interval: "0" }, }, ),
 			charts.WithXAxisOpts( opts.XAxis{ Name: "Time YearDay.frac",  }, ),				//Type: "time",  }, ),	<<-- Results in diagonal plot
 			charts.WithYAxisOpts( opts.YAxis{ Name: "Temp & Blower", Type: "value", }, ), 	//position: "right", }, ),	<<<--wrong.
+			charts.WithYAxisOpts( opts.YAxis{ Min: 0, Max: 100, }, ),			// apply uniform bounds
 		)
 		// Render and save the html file...
 		fileStr := fmt.Sprintf( "%s%04d-%02d-%02d"+chartFileSuffix, filePath + monthDir, dt.Year(), dt.Month(), dt.Day() )
