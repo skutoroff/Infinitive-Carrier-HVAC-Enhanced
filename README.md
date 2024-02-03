@@ -85,23 +85,23 @@ Added the blower percent on time to the subheading and later used this data for 
 
 The blower % on time data is extracted to show change in HVAC operation over the year.
 I would like to distinguish heat from cold by changing the line color, maybe in the future.
-![2024-01-02 Prior Month](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/f144fedd-a1c3-4e82-9bcd-58e1c2e50216)
+![Screenshot 2024-02-03 at 07 20 15](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4bc9e6f8-2654-4c56-b1b5-9a0b5a034a6a)
+
 
 To use the executable Pi file, install it in  `/var/lib/infinitive/` and set it up in systemd.
 If you configure systemd to save output and error log files, save them in `/var/log/infinitive/` as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
-#### Newest Updates January 2024
+#### Newest Updates January-February 2024
 
 Infinitive modifications now handle multiple year data collection and charting.
 There may still be bugs to be found as current year data progresses into the prior year on the chart.
-The code should enforce a 30 day separation berween new data from the left and existing prior year to the right.
-The gap will show as a sawtooth along the x-axis, also used to show missing data.
-A -1 value is used when no % on time value is found in a file, as happens to before this was added.
-Below is the first chart of 2024 showing 2024-01-01 on the left.
-![2024-01-02 Overlap years](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/a18c0211-a3c9-4a55-845e-dd5149c8f8e5)
+The code should enforce a 15 day separation berween new data from the left and existing prior year to the right.
+The gap and missing data show as missing data (lost files or files before the %on was calculated), no chart data.
+Below is a chart showing the current year 2024 on the left and the prior year to the right.
+![Screenshot 2024-02-03 at 07 09 08](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7f0bdaaf-6ef7-43a6-a443-9d8c11ef1f15)
 
 It was always planned to make the charts available through the UI.
-Recently, added a static file HTML server application from generally available education code.
+Added a static file HTML server application based on generally available education code.
 The HTML file with the links has been renamed to index.html.
 The links are now partial file name matches to work with the static server code.
 This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://yo.ur.i.p:8081/infinitive/index.html
