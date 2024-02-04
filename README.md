@@ -85,8 +85,6 @@ Added the blower percent on time to the subheading and later used this data for 
 
 The blower % on time data is extracted to show change in HVAC operation over the year.
 I would like to distinguish heat from cold by changing the line color, maybe in the future.
-![Screenshot 2024-02-03 at 07 20 15](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4bc9e6f8-2654-4c56-b1b5-9a0b5a034a6a)
-
 
 To use the executable Pi file, install it in  `/var/lib/infinitive/` and set it up in systemd.
 If you configure systemd to save output and error log files, save them in `/var/log/infinitive/` as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
@@ -103,10 +101,14 @@ I'd like to show the heating and cooling line segments in different colors and a
 
 It was always planned to make the charts available through the UI.
 Added a static file HTML server application based on generally available education code.
-The HTML file with the links has been renamed to index.html.
+The HTML file with the links has been renamed to index.html, shown below.
 The links are now partial file name matches to work with the static server code.
 This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://yo.ur.i.p:8081/infinitive/index.html
 The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone. Neat.
+![Screenshot 2024-02-03 at 07 20 15](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4bc9e6f8-2654-4c56-b1b5-9a0b5a034a6a)
+
+As time permits, may improve the chart apearance. Also, for the exceptional cases when data collection stops or pauses, may change the daily charts to show missing data gaps.
+This han't been an issue since getting things working, but still...
 
 #### Minor Nonsense
 
@@ -115,5 +117,7 @@ I like that Go programs are a single complete executable with no additional supp
 Creating concurrent execution units was easy, as done for the static file server on port 8081 while the UI runs on 8080.
 I like the sort of C like resemblance and the way objects are referenced.
 The object-method chaining is kind of neat, but hindered readability at first.
+Go almost makes me wish I was back to work as a code monkey.
+
 Wonder about using the USB RS-485 interface on a Mac and building for macos. Just a thought, no serious interest in doing it.
 
