@@ -34,6 +34,7 @@ var	filePath		= "/var/lib/infinitive/"
 var	monthDir		= ""
 var	logPath			= "/var/log/infinitive/"
 var	linksFile		= "index.html"
+var yearFileString	= "Year"
 var chartFileSuffix	= "_Infinitive.html"
 
 // Added: api.go external objects, i.e. infinity.BlowerRPM
@@ -80,7 +81,7 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 	// Identify the html files, produce table of links, table only or full html page.
 	htmlLinks, err := os.OpenFile( tableFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-			log.Error("makeTableHTMLfiles - htmlLinks.html create Failure.")
+			log.Error("makeTableHTMLfiles - " + tableFileName + " create Failure.")
 	}
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if !tableOnly {
@@ -206,15 +207,18 @@ func extractPercentFromHTMLfiles( folder string ) {
 		}
 		// log.Error("extractPercentFromHTMLfile - files in: " + folder )
 		for _, file := range files {
-			length := len( file )
-			date   := file[length-26:length-16]
-			t, err := time.Parse("2006-01-02", date )				//TODO: get date from file! file.ModTime()
+			length := len( filepath.Base(file) )					// Short file names will blow up time.Parse
+			if filepath.Base(file)==linksFile || filepath.Base(file)[:3]==yearFileString[:3] || filepath.Ext(file)!=".html" || length<10 {
+				continue											// Ignore non-html and special case files
+			}
+			date   := filepath.Base(file)[:10]						// Less dependent on filename structure
+			t, err := time.Parse("2006-01-02", date )				// Get date from file name
 			if err != nil {
-				// These are just non-data files and can be ignored.
+				// There should be few (none?) of these
 				log.Error("extractPercentFromHTMLfiles time.Parse() failed. " +  filepath.Base(file) )
 			}
 			yrday  := t.YearDay()
-			if file[length-1] == 'l' && todaysYear==t.Year() {		// Only process the html files for current year (prep for multiple years)
+			if  todaysYear==t.Year() {								// Process current year html files
 				data[yrday] = doOneDailyFile( file )				// The current year is processed last by Walk.
 				records++
 				gapStart = yrday									// gapStart != -1 will mean gap fill starts at gapStart+1
@@ -245,12 +249,12 @@ func extractPercentFromHTMLfiles( folder string ) {
 			}
 		}	// transfer percent to LineData
 		dt := time.Now()
-		text := fmt.Sprintf( "Years HVAC Active Pcnt Vsn: %s, #Found = %d, Date: %04d-%02d-%02d", Version, records, dt.Year(), dt.Month(), dt.Day() )
+		text := fmt.Sprintf( "Infinitive Vsn: %s, #Found = %d, Date: %04d-%02d-%02d", Version, records, dt.Year(), dt.Month(), dt.Day() )
 		Line := charts.NewLine()
 		Line.SetGlobalOptions(
 			charts.WithInitializationOpts(opts.Initialization{Theme: types.ThemeWesteros}),
 			charts.WithTitleOpts(opts.Title{
-				Title:    "Infinitive HVAC Year",
+				Title:    "Infinitive HVAC Pcnt Blower On - Year",
 				Subtitle: text,
 			}, ),
 		)
@@ -265,7 +269,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 			charts.WithYAxisOpts( opts.YAxis{ Min: 0, Max: 100, }, ),			// apply uniform bounds
 		)
 		// Render and save the html file...
-		fileStr := fmt.Sprintf( "Year_%04d-%02d.html", dt.Year(), dt.Month() )
+		fileStr := fmt.Sprintf( yearFileString + "_%04d-%02d.html", dt.Year(), dt.Month() )
 		// Chart it
 		fHTML, err := os.OpenFile( filePath + fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
