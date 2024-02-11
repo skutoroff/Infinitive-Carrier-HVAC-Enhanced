@@ -94,15 +94,15 @@ If you configure systemd to save output and error log files, save them in `/var/
 Infinitive modifications now handle multiple year data collection and charting.
 There may still be bugs to be found as current year data progresses into the prior year on the chart.
 The code should enforce a 15 day separation berween new data from the left and existing prior year to the right.
-The gap and missing data show as missing data (lost files or files before the %on was calculated), no chart data.
+The gap and missing data show as missing data (lost files or files before the %on was calculated).
 Below is a chart showing the current year 2024 on the left and the prior year to the right.
 I'd like to show the heating and cooling line segments in different colors and also annotate the current and prior year areas, e-charts remains a mystery.
-![Screenshot 2024-02-03 at 07 09 08](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/7f0bdaaf-6ef7-43a6-a443-9d8c11ef1f15)
+![Screenshot 2024-02-11 at 07 39 22](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/746f7eb2-ae7d-4243-8604-0eb15f5ccd7b)
 
 It was always planned to make the charts available through the UI.
-Added a static file HTML server application based on generally available education code.
+January update added a static file HTML server application based on generally available education code.
 The HTML file with the links has been renamed to index.html, shown below.
-The links are now partial file name matches to work with the static server code.
+The links are file name matches to work with the static server code.
 This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://yo.ur.i.p:8081/infinitive/index.html
 The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone. Neat.
 ![Screenshot 2024-02-03 at 07 20 15](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4bc9e6f8-2654-4c56-b1b5-9a0b5a034a6a)
