@@ -36,6 +36,7 @@ var	logPath			= "/var/log/infinitive/"
 var	linksFile		= "index.html"
 var yearFileString	= "Year"
 var chartFileSuffix	= "_Infinitive.html"
+var	htmlExt			= ".html"
 
 // Added: api.go external objects, i.e. infinity.BlowerRPM
 //		BlowerRPM       uint16
@@ -97,8 +98,8 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 			log.Error("makeTableHTMLfiles - filepath.Walk error 1." )
 			return nil
 		}
-		// First, only processs html files.
-		if !info.IsDir() && filepath.Ext(path) == ".html" {
+		// First, only processs html files, skip directories and index.html.
+		if !info.IsDir() && filepath.Base(path)!=linksFile && filepath.Ext(path)==htmlExt {
 			// Only add files newer than the criteria for being to old and the Year_yyyy-mmm.html files
 			base := filepath.Base( path )
 			if base[0:0] == "Y" {				// The few monthy Year charts are listed without considering age.
@@ -172,7 +173,7 @@ func doOneDailyFile( file string ) int {
 		}	// line has "On: "
 		line++
 	}	// file scanner
-	log.Error("doOneDailyFile -no On: value in:" + filepath.Base(file) + ", end line#:", line )
+	log.Error("doOneDailyFile -no On: value in:" + filepath.Base(file) )
 	return -1
 }	// doOneDailyFile
 
@@ -192,7 +193,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 			log.Error("extractPercentFromHTMLfiles - filepath.Walk() failed 1.", err )
 			return nil
 		}
-		if !info.IsDir() && filepath.Ext(path) == ".html" {
+		if !info.IsDir() && filepath.Ext(path)==htmlExt {
 			files = append(files, path)
 		}
 		return nil
@@ -208,7 +209,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 		// log.Error("extractPercentFromHTMLfile - files in: " + folder )
 		for _, file := range files {
 			length := len( filepath.Base(file) )					// Short file names will blow up time.Parse
-			if filepath.Base(file)==linksFile || filepath.Base(file)[:3]==yearFileString[:3] || filepath.Ext(file)!=".html" || length<10 {
+			if filepath.Base(file)==linksFile || filepath.Base(file)[:3]==yearFileString[:3] || filepath.Ext(file)!=htmlExt || length<10 {
 				continue											// Ignore non-html and special case files
 			}
 			date   := filepath.Base(file)[:10]						// Less dependent on filename structure
@@ -269,7 +270,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 			charts.WithYAxisOpts( opts.YAxis{ Min: 0, Max: 100, }, ),			// apply uniform bounds
 		)
 		// Render and save the html file...
-		fileStr := fmt.Sprintf( yearFileString + "_%04d-%02d.html", dt.Year(), dt.Month() )
+		fileStr := fmt.Sprintf( yearFileString + "_%04d-%02d"+htmlExt, dt.Year(), dt.Month() )
 		// Chart it
 		fHTML, err := os.OpenFile( filePath + fileStr, os.O_CREATE|os.O_APPEND|os.O_RDWR|os.O_TRUNC, 0664 )
 		if err == nil {
