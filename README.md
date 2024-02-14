@@ -101,11 +101,11 @@ I'd like to show the heating and cooling line segments in different colors and a
 
 It was always planned to make the charts available through the UI.
 January update added a static file HTML server application based on generally available education code.
-The HTML file with the links has been renamed to index.html, shown below.
+The HTML file with the links has been renamed to index.html.
 The links are file name matches to work with the static server code.
 This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://yo.ur.i.p:8081/infinitive/index.html
-The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone. Neat.
-![Screenshot 2024-02-03 at 07 20 15](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/4bc9e6f8-2654-4c56-b1b5-9a0b5a034a6a)
+The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone. Neat. I'll have to mess with that sometime.
+![Screenshot 2024-02-14 at 04 36 48](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/8af326c1-5da4-40a5-8264-f4cbcb575795)
 
 As time permits, may improve the chart apearance. Also, for the exceptional cases when data collection stops or pauses, may change the daily charts to show missing data gaps.
 This han't been an issue since getting things working, but still...
