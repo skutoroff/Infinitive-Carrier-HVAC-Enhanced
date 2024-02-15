@@ -102,9 +102,9 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 		if !info.IsDir() && filepath.Base(path)!=linksFile && filepath.Ext(path)==htmlExt {
 			// Only add files newer than the criteria for being to old and the Year_yyyy-mmm.html files
 			base := filepath.Base( path )
-			if base[0:0] == "Y" {				// The few monthy Year charts are listed without considering age.
+			if base[:3] == yearFileString[:3] {		// The few monthy Year charts are listed without considering age.
 				files = append(files, path)
-			} else {							// The daily chart files
+			} else {								// The daily chart files
 				if !fileIsTooOld(path,wayBackDays) {
 					files = append(files, path)
 				}
@@ -173,7 +173,7 @@ func doOneDailyFile( file string ) int {
 		}	// line has "On: "
 		line++
 	}	// file scanner
-	log.Error("doOneDailyFile -no On: value in:" + filepath.Base(file) )
+	log.Error("doOneDailyFile -no On: value in: " + filepath.Base(file) )
 	return -1
 }	// doOneDailyFile
 
@@ -199,7 +199,7 @@ func extractPercentFromHTMLfiles( folder string ) {
 		return nil
 	}	) 	// filepath.Walk()
     if err != nil {
-		log.Error("extractPercentFromHTMLfiles - filepath.Walk failed at end", err )
+		log.Error("extractPercentFromHTMLfiles - filepath.Walk failed at end.", err )
 		return
 	} else {
 		for i := 0; i<366; i++ {									// initialze data array to sawtooth
