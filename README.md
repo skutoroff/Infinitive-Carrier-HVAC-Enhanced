@@ -97,7 +97,7 @@ The code should enforce a 15 day separation berween new data from the left and e
 The gap and missing data show as missing data (lost files or files before the %on was calculated).
 Below is a chart showing the current year 2024 on the left and the prior year to the right.
 I'd like to show the heating and cooling line segments in different colors and also annotate the current and prior year areas, e-charts remains a mystery.
-
+![Screenshot 2024-04-12 at 11 13 23](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/8a8e3c76-c5cb-48fc-b4fb-31cbd9a4a3c1)
 
 It was always planned to make the charts available through the UI.
 January update added a static file HTML server application based on generally available education code.
@@ -106,7 +106,6 @@ The links are file name matches to work with the static server code.
 This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://yo.ur.i.p:8081/infinitive/index.html
 The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone. Neat. I'll have to mess with that sometime.
 ![Screenshot 2024-02-15 at 08 54 59](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/0f86fc9d-f7bb-41b0-a0d4-6edf000ea387)
-
 
 As time permits, may improve the chart apearance. Also, for the exceptional cases when data collection stops or pauses, may change the daily charts to show missing data gaps.
 This han't been an issue since getting things working, but still...
