@@ -40,7 +40,7 @@ There is one use-case for the TTL interface. Infinitive should run quite well on
 
 Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't bother with the TTL option unless you want to use a Pi Zero W (with header).
 
-#### Software
+### Software
 
 Started with go version 1.20.2 linux/arm, now using 1.21.5.
 Doing builds on both a Pi4 Bullseye and a Pi5 Bookworm.
@@ -89,7 +89,7 @@ I would like to distinguish heat from cold by changing the line color, maybe in 
 To use the executable Pi file, install it in  `/var/lib/infinitive/` and set it up in systemd.
 If you configure systemd to save output and error log files, save them in `/var/log/infinitive/` as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
-#### Newest Updates January-February 2024
+### Updates January-February 2024
 
 Infinitive modifications now handle multiple year data collection and charting.
 There may still be bugs to be found as current year data progresses into the prior year on the chart.
@@ -97,6 +97,7 @@ The code should enforce a 15 day separation berween new data from the left and e
 The gap and missing data show as missing data (lost files or files before the %on was calculated).
 Below is a chart showing the current year 2024 on the left and the prior year to the right.
 I'd like to show the heating and cooling line segments in different colors and also annotate the current and prior year areas, e-charts remains a mystery.
+
 ![Screenshot 2024-04-12 at 11 13 23](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/8a8e3c76-c5cb-48fc-b4fb-31cbd9a4a3c1)
 
 It was always planned to make the charts available through the UI.
@@ -105,10 +106,27 @@ The HTML file with the links has been renamed to index.html.
 The links are file name matches to work with the static server code.
 This table and the charts can now be viewed from any computer on the local network using the IP address and port 8081, as http://yo.ur.i.p:8081/infinitive/index.html
 The new release of original project source permits UI modifications as the dependence on `bindata_assets` is gone. Neat. I'll have to mess with that sometime.
+
 ![Screenshot 2024-02-15 at 08 54 59](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/0f86fc9d-f7bb-41b0-a0d4-6edf000ea387)
 
 As time permits, may improve the chart apearance. Also, for the exceptional cases when data collection stops or pauses, may change the daily charts to show missing data gaps.
 This han't been an issue since getting things working, but still...
+
+### 2024-09-20 Update
+
+The Feb 14 version has been running trouble free for months.
+
+I've moved the project to a Pi 400 and the new "USB to Multi-Protocol Serial Adapter: RS-232/TTL UART/RS-485" from Adafruit.com.
+Plan to use the Pi4 for a camera project.
+The new serial interface is 3x the price of the one from eBay and it is unlikely I will ever use the other serial port options.
+One negative for this one, the screws are really tiny.
+On the plus side, the data LED is green.
+This is a plus because the blue LED on the eBay one really lit up the room and was annoying at night.
+Not a problem until we finsihed the basement this year.
+
+![2F8EACE8-5F7E-4A31-89AB-3E8DD2E7C89C_1_105_c](https://github.com/user-attachments/assets/6ea62864-9285-4b70-8765-f38c898c6ef0)
+
+I'm also considering opening up the interface port for outside limited access. This is scary so I may add guardrail code to limit changes when access is not local.
 
 #### Minor Nonsense
 
