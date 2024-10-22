@@ -118,15 +118,19 @@ The Feb 14 version has been running trouble free for months.
 
 I've moved the project to a Pi 400 and the new "USB to Multi-Protocol Serial Adapter: RS-232/TTL UART/RS-485" from Adafruit.com.
 Plan to use the Pi4 for a camera project.
-The new serial interface is 3x the price of the one from eBay and it is unlikely I will ever use the other serial port options.
-One negative for this one, the screws are really tiny.
+The new USB-serial interface is 3x the price of the one from eBay and it is unlikely I will ever use the other serial port options.
+One negative for this device, the screws are really tiny.
 On the plus side, the data LED is green.
 This is a plus because the blue LED on the eBay one really lit up the room and was annoying at night.
 Not a problem until we finsihed the basement this year.
 
 ![2F8EACE8-5F7E-4A31-89AB-3E8DD2E7C89C_1_105_c](https://github.com/user-attachments/assets/6ea62864-9285-4b70-8765-f38c898c6ef0)
 
-I'm also considering opening up the interface port for outside limited access. This is scary so I may add guardrail code to limit changes when access is not local.
+I'm also considering opening up the interface port for limited external (non-loacl) access.
+This is risky so I looked into adding guardrail code to limit changes from non-local IP addresses.
+First step was to add guardrail code to the file: internal/assets/app/app.js.
+It works, but he source can easily be viewed and changed in a browser debug window.
+I may upload the updated app and file shortly.
 
 #### Minor Nonsense
 
