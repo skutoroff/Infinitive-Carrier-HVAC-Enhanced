@@ -126,9 +126,10 @@ Not a problem until we finsihed the basement this year.
 
 ![2F8EACE8-5F7E-4A31-89AB-3E8DD2E7C89C_1_105_c](https://github.com/user-attachments/assets/6ea62864-9285-4b70-8765-f38c898c6ef0)
 
-I'm also considering opening up the interface port for limited external (non-loacl) access.
-This is risky so I looked into adding guardrail code to limit changes from non-local IP addresses.
-First step was to add guardrail code to the file: internal/assets/app/app.js.
+I had previously noted I was planning on openning an interface to connect to the Infinitive Pi over the Internet.
+I upgraded to Bookworm recenty and hehold, there is now a feature "Raspberry Pi Connect".
+I don'tneed to do anything to my network and RPi Connect should be resonably secure, so while the basic guardrail code remains, more work is paused.
+The only change so far was to add temperature limits to the file: internal/assets/app/app.js.
 It works, but he source can easily be viewed and changed in a browser debug window.
 I may upload the updated app and file shortly.
 
