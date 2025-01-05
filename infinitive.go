@@ -219,6 +219,10 @@ func extractPercentFromHTMLfiles( folder string ) {
 				log.Error("extractPercentFromHTMLfiles time.Parse() failed. " +  filepath.Base(file) )
 			}
 			yrday  := t.YearDay()
+			if yrday < 0 {											// 2025 broke a bounds, range bound value
+				yrday = 0 }
+			if yrday >365 {
+				yrday = 365 }
 			if  todaysYear==t.Year() {								// Process current year html files
 				data[yrday] = doOneDailyFile( file )				// The current year is processed last by Walk.
 				records++
@@ -241,6 +245,12 @@ func extractPercentFromHTMLfiles( folder string ) {
 				data[i]	= -1										// Fill the gap
 			}
 		}
+		// Serious Debug Only
+		//for i:=0; i<366; i++ {
+		//	if i%10 == 0 {
+		//		log.Error( i,data[i],data[i+1],data[i+2],data[i+3],data[i+4],data[i+5],data[i+6],data[i+7],data[i+8],data[i+9] )
+		//	}
+		//}
 		log.Error("extractPercentFromHTMLfiles - Records found: "+  strconv.Itoa(records) )
 		for i := 0; i<366; i++ {
 			if data[i] != -1 {
