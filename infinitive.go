@@ -37,6 +37,8 @@ var	linksFile		= "index.html"
 var yearFileString	= "Year"
 var chartFileSuffix	= "_Infinitive.html"
 var	htmlExt			= ".html"
+var	homeDocsFldr	= "HomeDocs/"		// Must share root with infinitive files
+var gitHubReference	= "https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced"
 
 // Added: api.go external objects, i.e. infinity.BlowerRPM
 //		BlowerRPM       uint16
@@ -75,6 +77,31 @@ func fileIsTooOld( filename string, limit int ) bool {
 	return int(diff+math.Copysign(0.5, diff)) > limit -1				// The conversion got a little messy
 }	// fileIsTooOld
 
+// Find html files in HomeDocs folder, if any. Add list of links to these files.
+func insertHomeDocsLinks( filePath string, htmlFile *os.File ) {
+	log.Error( "insertHomeDocsLinks -- create links to Home Docs" )
+	count := 0
+	err := filepath.Walk( filePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Error("insertHomeDocsLinks - error in traversal.")
+			return nil
+		}
+		if !info.IsDir() && filepath.Ext(path)==htmlExt {			// It's an html file in the Docs folder
+			count++
+			if count == 1 {											// File found, introduce it all
+				htmlFile.WriteString( "<h1>Helpful Files Found in " + filePath+homeDocsFldr + "</h1>\n" )
+			}
+			log.Error("insertHomeDocsLinks - file: " + path)
+			htmlFile.WriteString( "  <p><a href=\"" + path[8:] + "\">" + filepath.Base(path) + "</a></p>\n" )
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error( "insertHomeDocsLinks - Error walking the directory: %v", err)
+	}
+	return
+}	// insertHomeDocsLinks
+
 // Find HTML files and prepare 3 column link table; bool argument controls table only or full html page.
 func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int ) {
 	var files []string
@@ -82,7 +109,7 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 	// Identify the html files, produce table of links, table only or full html page.
 	htmlLinks, err := os.OpenFile( tableFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-			log.Error("makeTableHTMLfiles - " + tableFileName + " create Failure.")
+		log.Error("makeTableHTMLfiles - " + tableFileName + " create Failure.")
 	}
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if !tableOnly {
@@ -98,8 +125,8 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 			log.Error("makeTableHTMLfiles - filepath.Walk error 1." )
 			return nil
 		}
-		// First, only processs html files, skip directories and index.html.
-		if !info.IsDir() && filepath.Base(path)!=linksFile && filepath.Ext(path)==htmlExt {
+		// Processs html files, skip directories, skip index.html, and skip files in the Docs folder.
+		if !info.IsDir() && filepath.Base(path)!=linksFile && filepath.Ext(path)==htmlExt && !strings.Contains(path,homeDocsFldr[0:len(homeDocsFldr)-1]) {
 			// Only add files newer than the criteria for being to old and the Year_yyyy-mmm.html files
 			base := filepath.Base( path )
 			if base[:3] == yearFileString[:3] {		// The few monthy Year charts are listed without considering age.
@@ -119,18 +146,16 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 		// Process the filepath list.
 		index := 0
 		for _, file := range files {
-			fileName := file		// still merging code
+			fileName := file
 			length := len(fileName)
 			// Only process temperature html files...
-			if fileName[length-1] == 'l' && fileName[0]!='h' {
+			if fileName[length-1] == 'l' {
 				// make three column table...
 				if index % 3 == 0 {
 					htmlLinks.WriteString( "  <tr>\n" )
 				}
-				// For active links using staticServer, omit the leading part of the fileName path.
-				//		The index.html file will no longer work without staticServer running, but it will work anywhere on local network.
-				// For target, only show the date part of the filename.
-				htmlLinks.WriteString( "    <td><a href=\"" + fileName[8:] + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + filepath.Base(fileName) + "</a></td>\n" )
+				// For target, omit leading folders from the file path. Start where files are served from.
+				htmlLinks.WriteString( "    <td><a href=\"" + fileName[8:] + "\">" + filepath.Base(fileName) + "</a></td>\n" )
 				if index % 3 == 2 {
 					htmlLinks.WriteString( " </tr>\n" )
 				}
@@ -142,8 +167,10 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 		}
 	}
 	if !tableOnly {
-		htmlLinks.WriteString( "</table>\n</body>\n" )
-		htmlLinks.WriteString( "</html>\n\n" )
+		htmlLinks.WriteString( "</table>\n" )
+		htmlLinks.WriteString( "<p>Infinitive Software Ref: <a href=\"" + gitHubReference + "\">Infinitive-Carrier-HVAC-Enhanced</a></p\n" )
+		insertHomeDocsLinks( filePath+homeDocsFldr, htmlLinks )
+		htmlLinks.WriteString( "</body>\n</html>\n\n" )
 	}
 	htmlLinks.Close()
 	return
@@ -406,9 +433,9 @@ func main() {
 	} )
 	cronJob1.Start()
 
-	// Set up cron 2 for charting daily file at two hour intevals during the day, less at night.
+	// Set up cron 2 for charting daily file hourly.
 	cronJob2 := cron.New(cron.WithSeconds())
-	cronJob2.AddFunc( "2 59 5,7,9,11,13,15,17,19,23 * * *", func() {
+	cronJob2.AddFunc( "2 0 */1 * * *", func() {
 		log.Error("Infinitive cron 2 Begins.")
 		intervalsRun	:= 0
 		intervalsOn		:= 0
@@ -562,6 +589,8 @@ func main() {
 	} )
 	cronJob4.Start()
 
+	// We've started/restarted, update the index.html file to be fresh.
+	makeTableHTMLfiles( false, filePath + linksFile, 24 )
 	// Start static file server for the charts, asyncrhonous
 	log.Error("Infinitive - start FileServer() for Infinitive HVAC charts.")
 	go func() {
@@ -579,3 +608,4 @@ func main() {
 	// ACD
 	launchWebserver(*httpPort, infinityApi)
 }
+
