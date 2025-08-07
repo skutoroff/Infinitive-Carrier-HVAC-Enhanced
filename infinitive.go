@@ -89,7 +89,7 @@ func insertHomeDocsLinks( filePath string, htmlFile *os.File ) {
 		if !info.IsDir() && filepath.Ext(path)==htmlExt {			// It's an html file in the Docs folder
 			count++
 			if count == 1 {											// File found, introduce it all
-				htmlFile.WriteString( "<h1>Helpful Files Found in " + filePath+homeDocsFldr + "</h1>\n" )
+				htmlFile.WriteString( "<h1>Helpful Files Found in " + filePath + "</h1>\n" )
 			}
 			log.Error("insertHomeDocsLinks - file: " + path)
 			htmlFile.WriteString( "  <p><a href=\"" + path[8:] + "\">" + filepath.Base(path) + "</a></p>\n" )
@@ -608,4 +608,3 @@ func main() {
 	// ACD
 	launchWebserver(*httpPort, infinityApi)
 }
-
