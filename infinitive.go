@@ -37,6 +37,7 @@ var	linksFile		= "index.html"
 var yearFileString	= "Year"
 var chartFileSuffix	= "_Infinitive.html"
 var	htmlExt			= ".html"
+var	pdfExt			= ".pdf"
 var	homeDocsFldr	= "HomeDocs/"		// Must share root with infinitive files
 var gitHubReference	= "https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced"
 
@@ -77,22 +78,25 @@ func fileIsTooOld( filename string, limit int ) bool {
 	return int(diff+math.Copysign(0.5, diff)) > limit -1				// The conversion got a little messy
 }	// fileIsTooOld
 
-// Find html files in HomeDocs folder, if any. Add list of links to these files.
-func insertHomeDocsLinks( filePath string, htmlFile *os.File ) {
+// Find files in HomeDocs folder using fileExt arg for extension. If any found, add list of links to these files.
+func insertHomeDocsLinks( filePath string, fileExt string, htmlFile *os.File ) {
 	log.Error( "insertHomeDocsLinks -- create links to Home Docs" )
 	count := 0
+	pos   := 0
 	err := filepath.Walk( filePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Error("insertHomeDocsLinks - error in traversal.")
 			return nil
 		}
-		if !info.IsDir() && filepath.Ext(path)==htmlExt {			// It's an html file in the Docs folder
+		if !info.IsDir() && filepath.Ext(path)==fileExt {			// It's a file with target extension in the Docs folder
 			count++
 			if count == 1 {											// File found, introduce it all
-				htmlFile.WriteString( "<h1>Helpful Files Found in " + filePath + "</h1>\n" )
+				htmlFile.WriteString( "<h3>Helpful Files Found in " + filePath + "</h3>\n" )
 			}
-			log.Error("insertHomeDocsLinks - file: " + path)
-			htmlFile.WriteString( "  <p><a href=\"" + path[8:] + "\">" + filepath.Base(path) + "</a></p>\n" )
+			//log.Error("insertHomeDocsLinks - file: " + path)
+			pos = strings.Index(path,homeDocsFldr)					// Show subfolder name in link text
+			// That [8:] has to be fixed TBD
+			htmlFile.WriteString( "  <p><a href=\"" + path[8:] + "\">" + path[pos+len(homeDocsFldr):] + "</a></p>\n" )
 		}
 		return nil
 	})
@@ -160,7 +164,7 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 					htmlLinks.WriteString( " </tr>\n" )
 				}
 				index++
-			}	// file ends with 'l' or starts with 'h' (the files we want.
+			}	// file ends with 'l' or starts with 'h' (the files we want).
 		}  // end for
 		if index % 3 == 1 {
 			htmlLinks.WriteString( " </tr>\n" )
@@ -168,8 +172,9 @@ func makeTableHTMLfiles( tableOnly bool, tableFileName string, wayBackDays int )
 	}
 	if !tableOnly {
 		htmlLinks.WriteString( "</table>\n" )
-		htmlLinks.WriteString( "<p>Infinitive Software Ref: <a href=\"" + gitHubReference + "\">Infinitive-Carrier-HVAC-Enhanced</a></p\n" )
-		insertHomeDocsLinks( filePath+homeDocsFldr, htmlLinks )
+		htmlLinks.WriteString( "<h3>Infinitive Software Ref: <a href=\"" + gitHubReference + "\">Infinitive-Carrier-HVAC-Enhanced</a></h3>\n" )
+		insertHomeDocsLinks( filePath+homeDocsFldr, htmlExt, htmlLinks )	// Find html files
+		insertHomeDocsLinks( filePath+homeDocsFldr, pdfExt,  htmlLinks )	// Find pdf files
 		htmlLinks.WriteString( "</body>\n</html>\n\n" )
 	}
 	htmlLinks.Close()
