@@ -161,10 +161,11 @@ Fixed the exception with some range check code.
 Changed Infinitive "HVAC Saved Measurements" to open links directly, tired of closing the tabs.
 Changed the frequency of updating the daily html files to hourly.
 Added a reference link under the link table to this Github project.
-If /var/lib/infinitive/ for contains the folder "HomeDocs", contained html files will have their links displayed.
+If /var/lib/infinitive/ for contains the folder "HomeDocs", contained ".html" & ".pdf" files will have their links displayed.
 The purpose is to provide a way to make documents about the house, alarm, etc generally available on-line.
 The new "HVAC Saved Measurements" is shown below. Blocked out PII.
-<img width="752" height="507" alt="Screenshot 2025-08-06 at 19 38 55" src="https://github.com/user-attachments/assets/736d6f5f-086b-4d29-9a19-5dd791d3c59e" />
+<img width="760" height="1059" alt="HCAV_Saved_Measurements" src="https://github.com/user-attachments/assets/8684048a-4ed4-4da7-b461-9708be92eba9" />
+
 
 #### Minor Nonsense
 
