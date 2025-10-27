@@ -30,7 +30,7 @@ No issues found moving to Bullseye and now using Bookworm.
 The source ACD project updates (2023-12) resolved many issues.
 Code built easily after updating to Go 1.21.5.
 Now building under Bookworm on a Pi5 requiring the ARM 64bit version `go1.21.5.linux-arm64.tar.gz`.
-October 2025: While adding new features, updated to Go 1.25 and it disclosed a previously ignore bounds error. See below.
+October 2025: While adding new features, updated to Go 1.25 and it disclosed a previously unreported index bounds error. See below.
 
 Wiring to the Carrier HVAC employs solid core multi-conductor wire per the referenced GitHub project.
 In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
