@@ -30,6 +30,7 @@ No issues found moving to Bullseye and now using Bookworm.
 The source ACD project updates (2023-12) resolved many issues.
 Code built easily after updating to Go 1.21.5.
 Now building under Bookworm on a Pi5 requiring the ARM 64bit version `go1.21.5.linux-arm64.tar.gz`.
+October 2025: While adding new features, updated to Go 1.25 and it disclosed a previously ignore bounds error. See below.
 
 Wiring to the Carrier HVAC employs solid core multi-conductor wire per the referenced GitHub project.
 In my case, the wire is run adjacent to network and alarm system wires in the basement for a distance of perhaps 20-25 feet up to the ceiling, across, and down to my network equipment.
@@ -115,8 +116,7 @@ It would be useful to distinguish heat from cold by changing the line color, may
 To use the executable Pi file, install it in  `/var/lib/infinitive/` and set it up in systemd.
 If you configure systemd to save output and error log files, save them in `/var/log/infinitive/` as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
 
-### Updates January-February 2024
-
+### Updates January-February 2024.
 Infinitive modifications now handle multiple year data collection and charting.
 There may still be bugs to be found as current year data progresses into the prior year on the chart.
 The code should enforce a 15 day separation berween new data from the left and existing prior year to the right.
@@ -138,8 +138,7 @@ The new release of original project source permits UI modifications as the depen
 As time permits, may improve the chart apearance. Also, for the exceptional cases when data collection stops or pauses, may change the daily charts to show missing data gaps.
 This han't been an issue since getting things working, but still...
 
-### 2024-09-20 Update
-
+### 2024-09-20 Update.
 The Feb 14 version has been running trouble free for months.
 
 I've moved the project to a Pi 400 and the new "USB to Multi-Protocol Serial Adapter: RS-232/TTL UART/RS-485" from Adafruit.com.
@@ -161,11 +160,15 @@ Fixed the exception with some range check code.
 Changed Infinitive "HVAC Saved Measurements" to open links directly, tired of closing the tabs.
 Changed the frequency of updating the daily html files to hourly.
 Added a reference link under the link table to this Github project.
-If /var/lib/infinitive/ for contains the folder "HomeDocs", contained ".html" & ".pdf" files will have their links displayed.
+If /var/lib/infinitive/ for contains the folder "HomeDocs", contained html files will have their links displayed.
 The purpose is to provide a way to make documents about the house, alarm, etc generally available on-line.
-The new "HVAC Saved Measurements" is shown below. Blocked out PII.
-<img width="760" height="1059" alt="HCAV_Saved_Measurements" src="https://github.com/user-attachments/assets/8684048a-4ed4-4da7-b461-9708be92eba9" />
 
+### October 2025.
+Added a second indexed folder "Photos" that opens in a new tab, as an additional table of photographs for self documenting the house.
+Both "HomeDocs" and "Photos" are implemented as symbolic links to my home folder.
+This works in spite of some warnings that "filepath.Walk" does not follow symlinks.
+Also corrected a latent bug that caused a never before reported "index out of range error" after switching to Go 1.25.
+The simple fix may cause a minor graphing error still under investigation.
 
 #### Minor Nonsense
 
