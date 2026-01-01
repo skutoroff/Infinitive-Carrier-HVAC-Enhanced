@@ -26,10 +26,11 @@ As with the project source developer, all my development is with various Raspber
 A Pi Zero would do fine, except it has no USB ports (continue reading).
 The Pi 400 also runs PiHole and Home Assistant (supervised).
 Early coding was done under Linux 10 (Buster).
-No issues found moving to Bullseye and now using Bookworm.
+No issues found moving to Bullseye, Bookworm, or Trixie.
 The source ACD project updates (2023-12) resolved many issues.
 Code built easily after updating to Go 1.21.5.
-Now building under Bookworm on a Pi5 requiring the ARM 64bit version `go1.21.5.linux-arm64.tar.gz`.
+Now building under Trixie on a Pi5 with ARM 64bit version `go1.21.5.linux-arm64.tar.gz`.
+
 October 2025: While adding new features, updated to Go 1.25 and it disclosed a previously unreported index bounds error. See below.
 
 Wiring to the Carrier HVAC employs solid core multi-conductor wire per the referenced GitHub project.
@@ -52,7 +53,7 @@ Later switched to the USB interface and found it to be stable over long perios a
 Below is the RS-485 to TTL installation while running Buster:
 ![SK_RPi4_InfinitivePiholeHomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/19ddfaa0-1728-4202-bb1f-d3513628fa46)
 
-Below is the currently employed and trouble fee RS-485 to USB installation (used with both Buster, Bullseye, and Bookworm):
+Below is the currently employed and trouble fee RS-485 to USB installation (used with Buster, Bullseye, Bookworm, and Trixie):
 ![RPi4 - Pihole, Infinitive, HomeBridge](https://github.com/skutoroff/Infinitive-Carrier-HVAC-Enhanced/assets/7796742/815b2c45-3293-4887-b96b-e94e5250f19e)
 
 There is one use-case for the TTL interface.
@@ -70,10 +71,10 @@ Summary, even if you enjoy wiring stuff up and want to use the GPIO pins, don't 
 ### Software
 
 Started with go version 1.20.2 linux/arm, now using 1.21.5.
-Doing builds on both a Pi4 Bullseye and a Pi5 Bookworm.
+Have done builds on both a Pi4 Bullseye, Pi5 Bookworm and Trixie.
 Building on the Pi 5 and running on the Pi 4/400 requires setting the environment and target.
 
-`env GOOS=linux GOARCH=arm GOARM=6 go build -ldflags "-X main.Version=0.4.1.06"`
+`env GOOS=linux GOARCH=arm GOARM=6 go build -ldflags "-X main.Version=0.0.5.6" -o infinitive`
 
 Planned enhancements required periodic time based execution.
 Found [cron v3](https://github.com/robfig/cron) which provides a cron-like time specification.
@@ -103,7 +104,7 @@ The X-axis name is just to the right of the axis line.
 Have not found suitable example code to mimic that both builds and places the axis names in middle of the X-axis and vertical for the Y-axis, etc.
 Examples found to date are very basic, more educational rather than complete.
 Originally, the daily chart was produced just before midnight.
-A later version produces partial charts during the day at 06:00, 08:00, 10:00, 12:00 14:00, 16:00 18:00, 20:00, and lastly at midnight.
+Charts were updated several times per day, recent updates do this hourly.
 
 Minor changes 2023-09-14.
 Changed chart file name from `yyyy-mm-dd_Chart.html` to `yyyy-mm-dd_Infinitive.html` as the filename extension is all that is needed to distinguish the files.
@@ -113,8 +114,7 @@ Added the blower percent on time to the subheading and later used this data for 
 The blower % on time data is extracted to show change in HVAC operation over the year.
 It would be useful to distinguish heat from cold by changing the line color, maybe in the future.
 
-To use the executable Pi file, install it in  `/var/lib/infinitive/` and set it up in systemd.
-If you configure systemd to save output and error log files, save them in `/var/log/infinitive/` as in the sample infinitive.service file and they will be deleted 2x per month to manage their size.
+The log files are removed on tne 1st and 16th of each month.
 
 ### Updates January-February 2024.
 Infinitive modifications now handle multiple year data collection and charting.
