@@ -27,7 +27,6 @@ import (
 	"net/http"
 )
 
-
 // Added: Strings used throughout, Version may be changed using -ldflags on build
 var	Version			= "development"
 var	filePath		= "/var/lib/infinitive/"
@@ -137,7 +136,7 @@ func insertHomeDocsLinks( walkPath string, fileExt string, htmlFile *os.File ) {
 		if !info.IsDir() && filepath.Ext(path)==fileExt {			// It's a file with target extension in the Docs folder
 			count++
 			if count == 1 {											// File found, introduce it all
-				htmlFile.WriteString( "<h3>Helpful Files Found in " + walkPath + "</h3>\n" )
+				htmlFile.WriteString( "<h3>Helpful " + fileExt + " Files Found in " + walkPath + "</h3>\n" )
 			}
 			pos = strings.Index(path,homeDocsFldr)					// Show subfolder name in link text
 			// That [8:] TBD, probably length of "/var/lib/", prefixt to serve point path
@@ -326,8 +325,8 @@ func extractPercentFromHTMLfiles( folder string ) {
 		//	Fill or Overwrite gap between current and prior year. Current is processed last
 		if gapStart != -1 && gapStart<350 {
 			log.Error("extractPercentFromHTMLfiles - Multi-year fill: ", gapStart )
-			for i := gapStart+1; i<gapStart+16;i++ {
-				data[i]	= -1										// Fill the gap
+			for i := gapStart; i<gapStart+16;i++ {
+				data[i]	= -1										// Fill the gap - 2025-12-12 (removed +1)
 			}
 		}
 		// Serious Debug Only
@@ -474,14 +473,10 @@ func main() {
 		} else {
 			currentTempPrev = infinity.CurrentTemp
 		}
-		// Set blower RPM as % where off(0), low(34), med(66), high(100), makes %rpm range match temp range
-		if infinity.BlowerRPM < 200 {
-			infinity.BlowerRPM = 0
-		} else if infinity.BlowerRPM < 550 {
-			infinity.BlowerRPM = 34
-		} else if infinity.BlowerRPM < 750 {
-			infinity.BlowerRPM = 66
-		} else {
+		//  OLd Set blower RPM as % off(0), low(34), med(66), high(100) so rpm range matches temp range
+		// 2025-12-12 Revise to use RPM/10 and cap at 100 to keep chart from changing high range.
+		infinity.BlowerRPM = infinity.BlowerRPM/10
+		if infinity.BlowerRPM > 100 {
 			infinity.BlowerRPM = 100
 		}
 		// Future: fix HvacMode, it is sometimes "unknown", but we don't use it.
@@ -491,7 +486,7 @@ func main() {
 	} )
 	cronJob1.Start()
 
-	// Set up cron 2 for charting daily file hourly.
+	// Set up cron 2 for hourly charting of daily file.
 	cronJob2 := cron.New(cron.WithSeconds())
 	cronJob2.AddFunc( "2 0 */1 * * *", func() {
 		log.Error("Infinitive cron 2 Begins.")
